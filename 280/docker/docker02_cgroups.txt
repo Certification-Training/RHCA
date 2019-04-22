@@ -1,0 +1,57 @@
+1. 回顾： namespace技术实际上修改了应用进程看待整个计算机的“视图”，即它的“视图”被操作系统做了限制，只能“看到”某些指定的内容。 对宿主机来说，它与其他进程没有什么区别
+2. 容器技术比虚拟化的优点：虚拟化需要虚拟机操作系统，会占用100-200M内存，在这里跑应用，又会经过虚拟机削弱，而容器只是一个特殊的进程，没有这个影响
+    敏捷、高性能，也是他能够在paas平台上流行的重要原因
+    缺点： 隔离得不彻底
+    在生产环境中，没有人敢把运行在物理机上linux容器直接暴露到公网中。
+3.cgroups: linux内核中用来为进程设置资源限制的一个重要功能
+    限制一个进程组能够使用的资源上限，包括CPU、内存、磁盘、网络带宽等等。
+4. cgroups给用户暴露出来的操作接口是文件系统，即它以文件和目录的方式组织在操作系统/sys/fs/cgroup路径下
+    ]# mount -t cgroup
+    cgroup on /sys/fs/cgroup/systemd type cgroup (rw,nosuid,nodev,noexec,relatime,xattr,release_agent=/usr/lib/systemd/systemd-cgroups-agent,name=systemd)
+    cgroup on /sys/fs/cgroup/perf_event type cgroup (rw,nosuid,nodev,noexec,relatime,perf_event)
+    cgroup on /sys/fs/cgroup/hugetlb type cgroup (rw,nosuid,nodev,noexec,relatime,hugetlb)
+    cgroup on /sys/fs/cgroup/pids type cgroup (rw,nosuid,nodev,noexec,relatime,pids)
+    cgroup on /sys/fs/cgroup/memory type cgroup (rw,nosuid,nodev,noexec,relatime,memory)
+    cgroup on /sys/fs/cgroup/cpuset type cgroup (rw,nosuid,nodev,noexec,relatime,cpuset)
+    cgroup on /sys/fs/cgroup/blkio type cgroup (rw,nosuid,nodev,noexec,relatime,blkio)
+    cgroup on /sys/fs/cgroup/freezer type cgroup (rw,nosuid,nodev,noexec,relatime,freezer)
+    cgroup on /sys/fs/cgroup/cpu,cpuacct type cgroup (rw,nosuid,nodev,noexec,relatime,cpuacct,cpu)
+    cgroup on /sys/fs/cgroup/net_cls,net_prio type cgroup (rw,nosuid,nodev,noexec,relatime,net_prio,net_cls)
+    cgroup on /sys/fs/cgroup/devices type cgroup (rw,nosuid,nodev,noexec,relatime,devices)
+    输出结果：一系列文件系统目录。
+    比如，对于CPU子系统来说，可以看到如下几个配置文件
+    ls /sys/fs/cgroup/cpu
+    cgroup.clone_children  cgroup.sane_behavior  cpuacct.usage_percpu  cpu.rt_period_us   cpu.stat           release_agent  user.slice
+    cgroup.event_control   cpuacct.stat          cpu.cfs_period_us     cpu.rt_runtime_us  machine.slice      system.slice
+    cgroup.procs           cpuacct.usage         cpu.cfs_quota_us      cpu.shares         notify_on_release  tasks
+    其中：
+        cfs_period , cfs_quota : 组合使用，可以用来限制进程在长度为cfs_period的一段时间内，只能被分配到总量为cfs_quota的CPU时间
+    cd /sys/fs/cgroup/cpu
+    mkdir container
+    ls container
+        cgroup.clone_children  cgroup.procs  cpuacct.usage         cpu.cfs_period_us  cpu.rt_period_us   cpu.shares  notify_on_release
+        cgroup.event_control   cpuacct.stat  cpuacct.usage_percpu  cpu.cfs_quota_us   cpu.rt_runtime_us  cpu.stat    tasks
+    这个目录称为一个“控制组”
+    ]# while :
+    > do
+    > :
+    > done &
+    [1] 12212
+    ]# top  ==> 结果达到100%,对cpu没有限制
+    echo 20000 > cpu.cfs_quota_us 即每100ms，运行20ms，占cpu的20%
+    ]# echo 12212 > tasks
+    ]# top  ==> 结果达到20%，对cpu做了限制 
+5. blkio，为块设备设定I/O限制，一般用于磁盘等设备
+   cpuset，为进程分配单独的CPU核和对应的内存节点
+   memory，为进程设置内存使用的限制
+6. cgroups: 简单粗暴地理解，它就是一个子系统目录加上一组资源限制文件的组合
+   ]# docker run -it --cpu-period=10000 --cpu-quota=20000 ubuntu /bin/bash
+   ]# cat /sys/fs/cgroup/cpu/system.slice/docker-f5cf84372f55782d2acfaffa0be295072a187f2e8b83724e8c8962840e67a408.scope/cpu.cfs_period_us
+   ]# cat /sys/fs/cgroup/cpu/system.slice/docker-f5cf84372f55782d2acfaffa0be295072a187f2e8b83724e8c8962840e67a408.scope/cpu.cfs_quota_us
+   说明：这个容器只能使用到20%的CPU带宽
+   一个正在运行的docker容器，其实就是一个启用了多个namespace的应用进程，cgroups进行配额限制
+   容器是一个“单进程”模型
+
+问题：
+    在容器中执行top，看到的还是宿主机的信息
+    原因： /proc文件系统并不知道用户通过cgroups给这个容器做了什么样的资源限制
