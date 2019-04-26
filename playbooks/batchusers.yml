@@ -1,0 +1,16 @@
+---
+- name: create batchusers and run it
+  hosts: server0
+  tasks:
+    - name: cp batchusers to /root
+      copy:
+        src: shells/batchusers
+        dest: /root/batchusers
+        mode: 0755
+    - name: download userlist
+      uri:
+        url: 'http://classroom/pub/materials/userlist'
+        dest: /root/userlist
+        force: yes
+    - name: run it with userlist
+      shell: /root/batchusers userlist

@@ -1,0 +1,23 @@
+---
+- name: private only for server0
+  hosts: server0
+  tasks:
+    - name: create private directory
+      file:
+        path: /var/www/html/private
+        mode: 0755
+        state: directory
+    - name: get private.html 
+      uri:
+        url: 'http://classroom/pub/materials/private.html'
+        dest: /var/www/html/private/index.html
+        force: yes
+    - name: private mode
+      copy:
+        src: conf/00-private.conf
+        dest: /etc/httpd/conf.d/00-private.conf
+        force: yes
+    - name: restart httpd
+      service:
+        name: httpd
+        state: restarted

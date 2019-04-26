@@ -1,0 +1,11 @@
+---
+- name: cp foo.sh to /root/foo.sh
+  hosts: server0
+  tasks:
+    - name: cp foo.sh
+      copy:
+        src: shells/foo.sh
+        dest: /root/foo.sh
+        mode: 0755
+    - name: run foo.sh
+      shell: /root/foo.sh

@@ -1,0 +1,14 @@
+---
+- name: do sth in student group
+  hosts: students
+  tasks:
+    - name: rht-vmctl reset all
+      copy: 
+        src: /root/ping/rht-vm.sh
+        dest: /usr/local/bin/rv.sh
+        mode: 0755
+    - name: run it
+      shell: /usr/local/bin/rv.sh
+    - name: rm rv.sh
+      shell: rm -rf /usr/local/bin/rv.sh
+

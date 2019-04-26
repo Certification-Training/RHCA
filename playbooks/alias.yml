@@ -1,0 +1,10 @@
+---
+- name: create alias
+  hosts: all
+  tasks:
+    - name: vim bashrc
+      shell: echo alias qstat=\'/bin/ps -Ao pid,tt,user,fname,rsz\'  >> /etc/bashrc
+    - name: source it
+      shell: source /etc/bashrc
+    - name: run qstat
+      shell: qstat

@@ -1,0 +1,27 @@
+---
+- name: create dynamic website in server0
+  hosts: server0
+  tasks:
+    - name: install mod_wsgi
+      yum:
+        name: mod_wsgi
+        state: latest
+    - name: create webapp0
+      file:
+        path: /var/www/webapp0
+        state: directory
+    - name: download webinfo.wsgi
+      uri:
+        url: 'http://classroom/pub/materials/webinfo.wsgi'
+        dest: /var/www/webapp0/webinfo.wsgi
+    - name: create conf 02-dynamic.conf
+      copy:
+        src: conf/02-dynamic.conf
+        dest: /etc/httpd/conf.d/02-dynamic.conf
+        force: yes
+    - name: semanage up 8909 port
+      shell: 'semanage port -a -t http_port_t -p tcp 8909'
+    - name: restart httpd
+      service:
+        name: httpd
+        state: restarted

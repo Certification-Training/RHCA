@@ -1,0 +1,53 @@
+---
+- name: mail in server0
+  hosts: server0
+  vars:
+    mailServer: smtp0.example.com
+    interface: loopback-only
+    fromEmail: desktop0.example.com
+    trustNet: '127.0.0.0/8  [::1]/128'
+    destination: ''
+    errors: 'local_transport=error:local delivery disabled'
+  tasks:
+    - name: interfaces
+      replace:
+        path: /etc/postfix/main.cf
+        regexp: '^inet_interfaces.*'
+        replace: "inet_interfaces = {{interface}}"
+    - name: myorigin
+      replace:
+        path: /etc/postfix/main.cf
+        regexp: '^#myorigin.*domain$'
+        replace: "myorigin = {{fromEmail}}"
+    - name: mydestination
+      replace:
+        path: /etc/postfix/main.cf
+        regexp: '^mydestination.*'
+        replace: "mydestination = {{destination}}"
+    - name: add errors
+      shell: echo "{{errors }}" >> /etc/postfix/main.cf
+    - name: add relayhost
+      shell: echo "relayhost = [{{mailServer}}]" >> /etc/postfix/main.cf
+    - name: add mynetworks
+      shell: echo "mynetworks = {{trustNet}}" >> /etc/postfix/main.cf
+
+    - name: restart and enabled postfix
+      service:
+        name: postfix
+        state: restarted
+        enabled: true
+- name: mail in desktop0
+  hosts: desktop0
+  tasks:
+    - name: pre-test
+      shell: lab smtp-nullclient setup
+- name: send mail in server0
+  hosts: server0
+  tasks:
+    - name: test to email 
+      mail:
+        port: 25
+        to: student
+        subject: Test1
+        body: This is a test email
+      

@@ -1,0 +1,8 @@
+---
+- name: config firewalld
+  hosts: server0
+  tasks:
+    - name: port from 5423 to 80
+      shell: firewall-cmd --permanent --zone=trusted --add-forward-port=port=5423:proto=tcp:toport=80
+    - name: reload firewalld
+      shell: firewall-cmd --reload

@@ -1,0 +1,50 @@
+---
+- name: create team with eth1/2 in server0
+  hosts: server0
+  tasks:
+    - name: scp team_Desktop.sh
+      copy:
+        src: conf/team_desktop.sh
+        dest: /usr/bin/team_desktop
+        mode: 0755
+        force: yes
+    - name: create team
+      shell: team_desktop
+    - name: add eth1 to team0
+      shell: nmcli connection add type team-slave con-name team0-1 ifname eth1 master team0
+    - name: add eth2 to team0
+      shell: nmcli connection add type team-slave con-name team0-2 ifname eth2 master team0
+    - name: config ipv4 in team0
+      shell: nmcli connection modify team0 ipv4.method manual ipv4.addresses "172.16.0.20/24" connection.autoconnect yes
+    - name: con up team0 0-1 0-2
+      shell: nmcli connection up "{{ item }}"
+      with_items:
+        - "team0-1"
+        - "team0-2"
+        - "team0"
+      tags: server0_team
+        
+- name: create team with eth1/2 in desktop0
+  hosts: desktop0
+  tasks:
+    - name: scp team_Desktop.sh
+      copy:
+        src: conf/team_desktop.sh
+        dest: /usr/bin/team_desktop
+        mode: 0755
+        force: yes
+    - name: create team
+      shell: team_desktop
+    - name: add eth1 to team0
+      shell: nmcli connection add type team-slave con-name team0-1 ifname eth1 master team0
+    - name: add eth2 to team0
+      shell: nmcli connection add type team-slave con-name team0-2 ifname eth2 master team0
+    - name: config ipv4 in team0
+      shell: nmcli connection modify team0 ipv4.method manual ipv4.addresses "172.16.0.25/24" connection.autoconnect yes
+    - name: con up team0 0-1 0-2
+      shell: nmcli connection up "{{ item }}"
+      with_items:
+        - team0-1
+        - team0-2
+        - team0
+      tags: desktop0_team

@@ -1,0 +1,19 @@
+---
+- name: set selinux enforcing
+  hosts: server0 desktop0
+  tasks:
+    - name: vim file
+      replace:
+        path: /etc/selinux/config
+        regexp: "SELINUX=permissive"
+        replace: "SELINUX=enforcing"
+    - name: cli change selinux
+      shell: "setenforce 1"
+    - name: firewalld trusted
+      shell: firewall-cmd --set-default-zone=trusted
+    - name: drop 172.34.0.0/24
+      shell: firewall-cmd --zone=drop --add-source=172.34.0.0/24 --permanent
+    - name: reload firewalld
+      shell: firewall-cmd --reload
+    
+

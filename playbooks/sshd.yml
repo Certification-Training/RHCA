@@ -1,0 +1,11 @@
+---
+- name: change sshd
+  hosts: all
+  tasks:
+    - name: modify sshd_config
+      shell: echo DenyUsers *@*.my133t.org  *@172.34.0.* >> /etc/ssh/sshd_config
+    - name: restart sshd
+      service:
+        name: sshd
+        state: restarted
+        enabled: true

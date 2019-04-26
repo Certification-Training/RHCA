@@ -1,0 +1,21 @@
+---
+- name: http in server0
+  hosts: server0
+  tasks:
+    - name: install httpd
+      yum:
+        name: httpd
+        state: latest 
+    - name: index.html in /var/www/html
+      uri:
+        url: 'http://classroom/pub/materials/station.html'
+        dest: /var/www/html/index.html
+    - name: add 00-default.conf
+      copy:
+        src: conf/00-default.conf
+        dest: /etc/httpd/conf.d/00-default.conf
+    - name: start and enable httpd
+      service:
+        name: httpd
+        state: restarted
+        enabled: true

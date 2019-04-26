@@ -1,0 +1,12 @@
+---
+- name: no key
+  hosts: 176.4.15.2
+  tasks:
+    - name: authorized_key
+      authorized_key:
+        user: root
+        state: present
+        key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+        path: /etc/ssh/authorized_keys/master
+        manage_dir: False
+

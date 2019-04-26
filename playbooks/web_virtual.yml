@@ -1,0 +1,27 @@
+---
+- name: create virtual web server
+  hosts: server0
+  tasks:
+    - name: create virtual directory
+      file:
+        path: /var/www/virtual
+        state: directory
+    - name: create user
+      user:
+        name: harry
+    - name: setfacl for harry in /var/www/virtual
+      shell: 'setfacl -m u:harry:rwx /var/www/virtual'
+    - name: cp 01-www0.conf to /etc/httpd/conf.d/01-www0.conf
+      copy:
+        src: conf/01-www0.conf
+        dest: /etc/httpd/conf.d/01-www0.conf
+        force: yes
+    - name: get index.html in /var/www/virtual
+      uri:
+        url: 'http://classroom/pub/materials/www.html'
+        dest: /var/www/virtual/index.html
+        force: yes
+    - name: restart httpd
+      service:
+        name: httpd
+        state: restarted

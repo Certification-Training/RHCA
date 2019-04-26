@@ -1,0 +1,20 @@
+---
+- name: ipv6 in server0
+  hosts: server0
+  tasks:
+    - name: set ipv6
+      shell: nmcli connection modify "System eth0" ipv6.method manual ipv6.addresses 2003:ac18::305/64 connection.autoconnect yes
+    - name: up eth0
+      shell: nmcli connection up "System eth0"
+    - name: set hostname
+      shell: echo server0.example.com > /etc/hostname
+
+- name: ipv6 in desktop0
+  hosts: desktop0
+  tasks:
+    - name: set ipv6
+      shell: nmcli connection modify "System eth0" ipv6.method manual ipv6.addresses 2003:ac18::306/64 connection.autoconnect yes
+    - name: up eth0
+      shell: nmcli connection up "System eth0"
+    - name: set hostname
+      shell: echo desktop0.example.com > /etc/hostname

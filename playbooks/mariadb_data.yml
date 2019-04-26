@@ -1,0 +1,22 @@
+---
+- name: load data
+  hosts: server0
+  tasks:
+    - name: change password
+      shell: mysqladmin -u root password '123456'
+    - name: create Contacts DATABASE
+      shell: mysql -uroot -p123456 -e 'create database Contacts;'
+    - name: grant select
+      shell: mysql -uroot -p123456 -e 'grant select on Contacts.* to Raikon@localhost identified by "123456"'
+    - name: delete none password
+      shell: mysql -uroot -p123456 -e 'delete from mysql.user where Password="";'
+    - name: download users.sql
+      uri: 
+        url: 'http://classroom/pub/materials/users.sql'
+        dest: /root/users.sql
+    - name: load data
+      shell: mysql -uroot -p123456 Contacts < /root/users.sql
+    - name: select solicitous
+      shell: mysql -uroot -p123456 -e "SELECT name FROM Contacts.base WHERE password='solicitous';"
+    - name: get counts
+      shell: mysql -uroot -p123456 -e "select count(*) from Contacts.base,Contacts.location where base.name='Barbara' and location.city='Sunnyvale' and base.id=location.id;"
