@@ -1,0 +1,6 @@
+hostname
+net
+ipc信号向量
+filesystem
+user
+process
