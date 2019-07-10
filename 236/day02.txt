@@ -1,0 +1,268 @@
+各种卷的类型图式：
+http://classroom.example.com/content/slides/RH236-RHGS3.1-en-1-20160627-slides.pdf
+
+
+客户端访问：
+1.原生挂载
+2.NFS挂载
+3.CIFS挂载
+
+原生挂载：
+	要求：客户端需要安装glusterfs-fuse
+	mount -t glusterfs servera:/卷名称  目录
+	挂载选项:
+	backup-volfile-servers=<server1>:<server2>...指定备用服务器
+	ro 只读属性
+	acl支持访问控制列表setfacl,getfacl
+	_netdev网络设备
+rht-vmctl reset all
+ssh root@workstation
+[root@workstation ~]# lab native-client setup
+脚本自动使用servera-serverd创建custdata卷
+
+客户端访问(workstation)
+[root@workstation ~]# mkdir /mnt/custdata
+[root@workstation ~]# vim /etc/fstab
+servera:/custdata  /mnt/custdata  glusterfs _netdev,backup-volfile-servers=serverb:serverc:serverd 0 0
+[root@workstation ~]# mount -a
+[root@workstation ~]# touch /mnt/custdata/file{0..30}
+把servera关机,等待一会
+[root@workstation ~]# ls /mnt/custdata
+挂载日志:
+tail /var/log/glusterfs/mnt-custdata.log
+[root@workstation ~]# umount /mnt/custdata
+把servera启动
+
+**********************************
+NFS挂载
+	glusterfs自己设计的NFS软件,v3
+	只要创建并启动卷，gluster就会自动创建对应的NFS共享
+	需要修改防火墙策略
+在workstation执行
+#lab nfs-client setup	
+
+在servera上设置防火墙规则
+# firewall-cmd --add-service=rpc-bind --add-service=nfs
+# firewall-cmd --runtime-to-permanent
+success
+	
+在workstation客户端访问
+# mkdir /mnt/mediadata
+# vim /etc/fstab
+servera:/mediadata  /mnt/mediadata nfs defaults 0 0
+# mount -a
+# umount /mnt/mediadata
+
+**********************************
+CIFS访问(samba)
+在workstation执行:
+# lab smb-client setup
+在servera执行：
+[root@servera ~]# firewall-cmd --add-service=samba
+[root@servera ~]# firewall-cmd --runtime-to-permanent
+
+[root@servera ~]# yum -y install samba
+[root@servera ~]# systemctl enable smb.service
+[root@servera ~]# systemctl start smb.service
+
+把mediadata卷通过samba共享出去:
+[root@servera ~]# yum -y install samba-vfs-glusterfs
+[root@servera ~]# gluster volume set mediadata stat-prefetch off
+[root@servera ~]# gluster volume set mediadata server.allow-insecure on
+允许使用大于1024的端口
+[root@servera ~]# gluster volume set mediadata storage.batch-fsync-delay-usec 0
+设置延迟时间为0
+[root@servera ~]# systemctl restart glusterd.service
+[root@servera ~]# gluster volume stop mediadata
+[root@servera ~]# gluster volume start mediadata
+重新启动卷glusterfs出发了一个脚本，由这个脚本自动修改了smaba的配置文件.
+/var/lib/glusterd/hooks/1/start/post/
+S30samba-start.sh
+
+在servera创建samba账户:
+[root@servera ~]# adduser smbuser
+[root@servera ~]# smbpasswd -a smbuser
+New SMB password:<输入密码>
+Retype new SMB password:<输入密码>
+Added user smbuser.
+
+客户端访问(workstation)
+[root@workstation ~]# yum -y install samba-client
+[root@workstation ~]# yum -y install cifs-utils.x86_64
+[root@workstation ~]# smbclient -L servera -U smbuser%redhat
+[root@workstation ~]# mkdir /mnt/smbdata
+[root@workstation ~]# vim /etc/fstab
+//servera/gluster-mediadata /mnt/smbdata cifs user=smbuser,pass=redhat 0 0
+
+
+查询的方法：
+#gluster volume set help |grep 关键词
+#gluster volume get <卷名称> all
+
+
+设置卷的选项属性：
+gluster volume set <卷名称>  <选项> <值>
+查询卷的属性:
+gluster volume info <卷名称>
+重置卷的属性:
+gluster volume reset <卷名称> <选项>
+
+常见有用的属性:
+属性			默认值		
+auth.allow  		*
+auth.reject		空
+nfs.rpc-auth-allow 	*
+nfs.rpc-auth-reject	空
+nfs.disable		off
+features.read-only	off
+server.root-squash	off
+
+如果同时有auth.allow和auth.reject则拒绝优先
+如果使用root挂载nfs，则root会被自动降级为nfsnobody
+firewall-cmd --set-default-zone=trusted 
+
+实验：
+重置虚拟机,在workstation执行脚本
+# lab volopts setup
+
+在servera执行：
+[root@servera ~]# gluster volume  list
+[root@servera ~]# firewall-cmd --set-default-zone=trusted 
+[root@servera ~]# gluster volume set galactica server.root-squash on
+[root@servera ~]# gluster volume set galactica auth.reject 172.25.250.13
+[root@servera ~]# gluster volume set galactica nfs.rpc-auth-reject 172.25.250.13
+	
+在客户端workstation操作：
+[root@workstation ~]# mkdir /mnt/galactica
+[root@workstation ~]# mount servera:/galactica  /mnt/galactica/
+[root@workstation ~]# cd /mnt/galactica/
+[root@workstation ~]# touch 文件失败
+
+在客户端serverd操作：
+[root@serverd ~]# mkdir /mnt/galactica
+[root@serverd ~]# mount servera:/galactica  /mnt/galactica/
+挂载失败！！！
+
+
+ACL和Quotas:
+
+ACL实验：
+在workstaiton执行脚本：
+# lab acls setup
+脚本自动在workstation创建了用户和组:
+用户:simon,boss,dave
+组：admins:x:10000:simon,dave
+    managers:x:10001:simon,boss
+
+# yum -y install glusterfs-fuse
+# mkdir  /mnt/groupdata
+# vim /etc/fstab
+servera:/groupdata  /mnt/groupdata glusterfs
+_netdev,acl 0 0
+
+# mkdir /mnt/groupdata/admindocs
+# chgrp admins /mnt/groupdata/admindocs/
+# chmod 2770 /mnt/groupdata/admindocs/
+sgid对目录的作用是：任何人在该目录下创建新的目录和文件，则所属组都是admins
+测试：
+# su - dave
+# cd /mnt/groupdata/admindocs/
+# touch dave.txt
+# ll dave.txt
+# exit
+# setfacl -R -m g:admins:rwX /mnt/groupdata/admindocs/
+# setfacl -R -m d:g:admins:rwX /mnt/groupdata/admindocs/
+
+大写的X，仅当原始文件或目录有x权限时，才给acl附加x权限，否则不附加x权限。
+d是设置默认ACL(default),以后在该目录下创建的新目录和文件，都自己具有acl
+# su - dave
+# touch /mnt/groupdata/admindocs/b.txt
+
+
+配额实验：
+重置虚拟机servera和serverb
+在workstation执行脚本：
+# lab quotas setup
+脚本自动在servera和serverb创建共享卷，自动在workstation执行mount挂载
+glusterfs支持对目录的配额，需要客户端重新mount
+
+在workstation执行：
+# umount /mnt/graphics/
+
+在servera或serverb执行命令：
+开启配额功能
+[root@servera ~]# gluster volume quota graphics enable
+开启硬配额和软配额:
+[root@servera ~]# gluster volume  quota graphics limit-usage /raw 1GB
+[root@servera ~]# gluster volume quota graphics default-soft-limit 50%
+或者
+[root@servera ~]# gluster volume  quota graphics limit-usage /raw 1GB 50%
+软配额是一个百分比，到达硬配额百分之多少时开始警告(日志)
+
+配额是非实时更新(默认值为60秒)
+[root@servera ~]# gluster volume quota graphics soft-timeout 1s
+[root@servera ~]# gluster volume quota graphics hard-timeout 1s
+查看配额
+[root@servera ~]# gluster volume  quota graphics list
+
+客户端挂载测试：
+[root@workstation ~]# mount -a
+[root@workstation ~]# dd if=/dev/zero of=/mnt/graphics/raw/a.txt bs=1M count=100
+[root@workstation ~]# dd if=/dev/zero of=/mnt/graphics/raw/b.txt bs=1M
+
+默认仅管理员可以查看配额，客户端无法查看配额:
+在servera或serverb执行:
+[root@servera ~]# gluster volume set graphics quota-deem-statfs on
+可以让客户端通过df命令查看配额
+[root@workstation ~]# df /mnt/graphics/raw/
+
+++++++++++++++++++++++++++++++++++++++++++++
+扩容和缩减卷
+
+扩容实验：
+重置servera-serverd
+在workstation执行脚本：
+[root@workstation ~]# lab extendvolume setup
+脚本自动将servera,serverb,serverc,serverd加入信任池
+使用servera和serverb创建了一个复制卷
+serverc和serverd提前创建好了brick
+
+在servera-serverd任意主机操作：
+# gluster volume  add-brick extendme  \
+> serverc:/bricks/brick-c1/brick \
+> serverd:/bricks/brick-d1/brick
+
+[root@servera ~]# gluster volume  info extendme
+[root@servera ~]# gluster volume  rebalance extendme start
+[root@servera ~]# gluster volume  rebalance extendme status
+
+数据rebalance策略:
+# gluster volume set 卷名称 cluster.rebal-throttle <策略>
+   lazy:一次仅允许迁移一个文件
+   normal:默认，一次迁移2个文件或者(内核数量-4)/2,取最大值
+   aggressive:一次迁移4个文件或者(内核数量-4)/2,取最大值
+
+
+缩减卷实验：
+[root@servera ~]# gluster volume  remove-brick extendme serverc:/bricks/brick-c1/brick serverd:/bricks/brick-d1/brick start
+迁移数据
+
+[root@servera ~]# gluster volume  remove-brick extendme serverc:/bricks/brick-c1/brick serverd:/bricks/brick-d1/brick status
+查看迁移的状态
+
+[root@servera ~]# gluster volume  remove-brick extendme serverc:/bricks/brick-c1/brick serverd:/bricks/brick-d1/brick commit
+提交删除
+
+
+可以多操作一个扩容复制的实验：
+在serverc操作：
+# rm -rf /bricks/brick-c1/brick
+# mkdir /bricks/brick-c1/brick
+在serverd操作：
+# rm -rf /bricks/brick-d1/brick
+# mkdir /bricks/brick-d1/brick
+在servera操作：
+# gluster volume  add-brick extendme replica 4 \
+serverc:/bricks/brick-c1/brick \
+serverd:/bricks/brick-d1/brick
+

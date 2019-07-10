@@ -1,0 +1,155 @@
+RH236(GlusterFS分布式存储服务器)
+glusterfs
+
+root密码:Asimov
+kiosk密码:redhat
+虚拟机root:redhat
+yum -y install tigervnc
+vncveiwer 172.25.254.250:8
+
+讲师主机：
+        clasroom教室里,共享服务
+        content.example.com
+        materials.example.com
+        classroom.example.com
+物理主机上的虚拟机：
+        server{a..e}:共享服务器
+        workstation:客户端
+        manager:Web console管理GlusterFS
+
+#rht-vmctl  status    all
+#rht-vmctl  start     虚拟机名称
+#rht-vmctl  fullreset 虚拟机名称
+
+GlusterFS特色：
+1.动态扩容、缩减
+2.非中心化设计
+3.高可用
+4.兼容普通的主机
+        1.现有的Linux,配yum源,yum安装软件包
+        2.裸机安装（iso)
+
+步骤：
+#ssh root@workstation
+#lab install-rhs setup
+使用图形点击servera虚拟机
+根据提示安装glusterfs
+        1.安装磁盘，选择vda
+        2.网络选on
+        3.配置root密码
+安装光盘的位置：
+
+为了连接虚拟机更方便可以删除config配置
+rm -rf /home/kiosk/.ssh/config
+
+
+
+++++++++++++++++++++++++++++++++++
+实验：创建GlusterFS集群存储
+概念：
+  node存储服务器的节点(server{a..e})
+  trusted storage pool信任存储池
+  Brick(准备的共享文件系统)
+  volume(多个brick组合为一个共享卷)
+步骤1创建信任存储池（使用servera和serverb作共享）：
+# ssh root@servera
+# gluster peer status
+# firewall-cmd --add-service=glusterfs
+# firewall-cmd --runtime-to-permanent
+# ssh root@serverb
+# firewall-cmd --add-service=glusterfs
+# firewall-cmd --runtime-to-permanent
+想把一台主机从信任池中删除：
+[root@servera ~]# gluster peer detach serverb
+[root@servera ~]# gluster peer probe serverb.lab.example.com
+
+步骤2：准备bricks
+servera和serverb准备共享用的lv逻辑卷(brick)
+磁盘--->PV--->VG--->LV池---->LV
+#pvcreate /dev/磁盘名称
+#vgcreate vg名称  /dev/磁盘名称
+# lvcreate -L 10G -T vg_bricks/thinpool
+#lvcreate -V 2G -T vg_bricks/thinpool -n brick-a1
+#mkfs.xfs -i size=512 /dev/vg_bricks/brick-a1
+#mkdir -p /bricks/brick-a1
+#vim /etc/fstab
+/dev/vg_bricks/brick-a1  /bricks/brick-a1  xfs defaults 0 0
+#mount -a
+#mkdir /bricks/brick-a1/brick
+# restorecon -Rv /bricks
+或者
+# chcon -t glusterd_brick_t 目录名称
+
+#ll -Zd /bricks/brick-a1/brick/
+查看SElinux安全上下文是否正确
+
+[[将上面servera的操作在serverb上重复执行一遍]]
+
+
+步骤3创建共享volumes卷(在servera或者serverb执行）
+[root@serverb ~]# gluster volume list
+
+[root@serverb ~]#gluster volume create firstvol \
+servera:/bricks/brick-a1/brick \
+serverb:/bricks/brick-b1/brick
+
+
+[root@serverb ~]# gluster volume info firstvol
+[root@serverb ~]# gluster volume start firstvol
+
+步骤4客户端测试：
+# ssh root@workstation
+[root@workstation ~]# yum install glusterfs-fuse
+[root@workstation ~]# touch /mnt/file{0..100}
+
+[root@servera ~]# ls /bricks/brick-a1/brick/
+[root@serverb ~]# ls /bricks/brick-b1/brick/
+
+
+
+实验：创建各种类型的volume卷
+# rht-vmctl fullreset servera
+# rht-vmctl fullreset serverb
+# ssh root@workstation
+[root@workstation ~]# lab createvolumes setup
+
+> servera:/bricks/brick-a1/brick \
+> serverb:/bricks/brick-b1/brick
+
+# gluster volume  info replvol
+# gluster volume  start replvol
+
+客户端测试：
+# mount -t glusterfs servera:replvol /mnt/
+# touch /mnt/file{1..100}
+
+步骤2：创建disperse卷
+N=K+M  （K是数据盘个数，M校验盘个数)
+serverc:/bricks/brick-c1/brick \
+serverd:/bricks/brick-d1/brick \
+servera:/bricks/brick-a2/brick \
+serverb:/bricks/brick-b2/brick \
+serverc:/bricks/brick-c2/brick \
+serverd:/bricks/brick-d2/brick force
+
+
+# gluster volume start dispervol
+
+客户端测试：
+# mount -t glusterfs servera:dispervol /mnt/
+# dd if=/dev/zero of=/mnt/a.txt bs=1M count=50
+
+
+复合卷：
+分布式复制卷
+分布式disperse卷
+
+
+步骤3：创建复制卷(servera或者serverb操作)
+# gluster volume create replvol replica 2 \
+> servera:/bricks/brick-a1/brick \
+> serverb:/bricks/brick-b1/brick \
+> serverc:/bricks/brick-c1/brick \
+> serverd:/bricks/brick-d1/brick \
+> servere:/bricks/brick-c1/brick \
+> serverf:/bricks/brick-d1/brick

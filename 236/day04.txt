@@ -1,0 +1,157 @@
+
+Tiering
+热卷(hot)，冷卷(cold)
+使用固态盘作hot卷
+传统磁盘作cold卷
+1.先创建一个普通卷
+2.gluster volume tier 卷名称  attach \
+replica 2 \
+servera:/bricks/brick-a2/brick \
+serverb:/bricks/brick-b2/brick
+原来的普通卷就自动分了两个子卷
+3.gluster volume info  卷名称
+Volume name: 名称
+Hot Tier:
+   ...
+   servera:/.../brick
+   serverb:/.../brick
+Cold Tier:
+   ... 
+   serverc:/.../brick
+   serverd:/.../brick
+4.取消热卷
+#gluster volume tier 卷名称  detach start
+#gluster volume tier 卷名称  detach status
+等待completed完成
+#gluster volume tier 卷名称  detach commit
+
+prmotion(升级),demotion(降级)
+影响升级与降级的几个参数:
+cluster.watermark-hi(高水位线) 默认90%
+cluster.watermark-lo(低水位线) 默认75%
+cluster.tier-promote-frequency 120s
+cluster.tier-demote-frequency  3600s
+cluster.read-freq-threshold 默认未设置
+cluster.write-freq-threshold默认未设置
+cluster.tier-max-files 默认为1000个文件
+cluster.tier-max-mb    默认是4000Mib
+
+
+实验：
+在workstation执行脚本:lab tiering setup
+脚本自动在servera和serverb创建名称为prod-vol的卷
+
+在servera操作
+# gluster volume info prod-vol
+
+在servera和serverb执行
+#mount确认有几个brick（有多余没有使用的brick)
+
+servera或者serverb操作:
+#gluster volume tier prod-vol  attach \
+replica 2 \
+servera:/bricks/brick-a2/brick \
+serverb:/bricks/brick-b2/brick
+#gluster volume info prod-vol
+#gluster volume tier prod-vol status
+node	promoted file    demoted file  status
+servera    1               2       in progress
+serverb    0               1       in progress
+
+
+++++++++++++++++++++++++++++++++
+如果需要对一个已经tier的卷作扩容或缩减
+扩容或缩减都需要先将hot卷detach出来
+然后在使用之前方法对普通卷作扩容或缩减
+
+实验步骤（对已经tier的卷进行扩容）
+在workstation执行脚本
+#lab extend-tier setup
+脚本自动创建了一个卷prod-vol,并且该卷是带有hot卷。
+#gluster volume tier prod-vol detach start
+#gluster volume tier prod-vol detach status 
+#gluster volume tier prod-vol detach commit
+
+在servera操作：
+#rm -rf /bricks/brick-a2/brick
+#mkdir /bricks/brick-a2/brick
+在serverb操作：
+#rm -rf /bricks/brick-b2/brick
+#mkdir /bricks/brick-b2/brick
+
+#gluster volume tier prod-vol attach  replica 2 \
+servera:/brick/brick-a2/brick \
+serverb:/brick/brick-b2/brick \
+servera:/brick/brick-a3/brick \
+serverb:/brick/brick-b3/brick
+
+
+++++++++++++++++++++++++++++++++++
+结合RHGC(redhat gluster console)
+作nagios监控
+
+rhgc和nagios都是安装在manager,使用manager监控gluster集群(servera,...)
+
+监控服务器安装nagios
+被监控端安装nrpe
+
+实验需要修改所有的被监控端(servera....)
+vim /etc/nagios/nrpe.cfg
+allowd_hosts=127.0.0.1,监控服务器的IP
+
+监控服务器（manager)
+1.校验：
+/usr/lib64/nagios/plugins/check_nrpe -H 被监控端IP  -c "check_procs"
+2.执行脚本自动修改nagios的配置文件
+configure-gluster-nagios -c 集群名称  -H 主机名或IP地址
+脚本：1.修改并确认配置
+     2.重启服务
+
+实验步骤：
+在workstation执行脚本
+#lab rhsc-nagios setup
+使用servera和serverb作了一个gluster集群
+在manager安装了cosole和nagios
+
+在servera
+#firewall-cmd --permanent --add-port=5666/tcp
+#firewall-cmd --reload
+
+在serverb
+#firewall-cmd --permanent --add-port=5666/tcp
+#firewall-cmd --reload
+
+在servera和serverb修改配置
+#vim  /etc/nagios/nrpe.cfg
+allowd_hosts=127.0.0.1,manager.lab.example.com
+#systemctl restart nrpe
+
+在manager监控主机操作:
+#configure-gluster-nagios -c gluster-cluster -H servera.lab.example.com
+回车
+回车
+回车
+#验证
+#nagios -v /etc/nagios/nagios.cfg
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

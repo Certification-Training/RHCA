@@ -1,0 +1,297 @@
+vnc 172.25.254.250:8
+
+客户端访问glusterfs:原生、NFS、Samba
+
+用CTDB实现浮动IP
+		nfs共享卷[share]lock
+			
+	servera   serverb   serverc
+ 	VIP	 
+		卷[test]
+	client mount -t nfs VIP:/test /mnt
+让用户可以使用cifs的方式访问卷（高可用）
+实验步骤：
+#ssh root@workstation
+#lab ctdb setup	
+脚本自动在servera和serverb创建ctdbmeta卷和custdata卷
+ctdbmeta用来存放lock锁文件(给ctdb软件使用)
+custdata是最终给客户端访问存储数据的卷
+
+ssh root@servera
+#yum -y install ctdb
+#firewall-cmd --add-service=samba
+#firewall-cmd --add-port=4379/tcp
+#firewall-cmd --runtime-to-permanent
+或者
+#firewall-cmd --set-default-zone=trusted
+ssh root@serverb
+#yum -y install ctdb
+#firewall-cmd --add-service=samba
+#firewall-cmd --add-port=4379/tcp
+#firewall-cmd --runtime-to-permanent
+或者
+#firewall-cmd --set-default-zone=trusted
+
+servera或者serverb把ctdbmeta卷stop
+#gluster volume stop ctdbmeta
+
+在servera和serverb都操作：
+#vim /var/lib/glusterd/hooks/1/start/post/S29CTDBsetup.sh 
+把META="all"修改为META="ctdbmeta"
+
+#vim /var/lib/glusterd/hooks/1/stop/pre/S29CTDB-teardown.sh
+把META="all"修改为META="ctdbmeta"
+
+在servera和serverb修改smaba的配置文件，让samba支持集群
+# vim /etc/samba/smb.conf
+clustering = yes
+
+在servera或者serverb启动ctdbmeta卷
+#gluster volume  start ctdbmeta
+
+
+在servera和serverb都操作：
+#vim /etc/ctdb/nodes
+172.25.250.10
+172.25.250.11
+#vim /etc/ctdb/public_addresses
+172.25.250.15/24 eth0
+#systemctl start ctdb
+#yum -y install samba
+#ctdb status
+
+
+配置servera和serverb上面的custdata卷，创建samba共享
+在servera和serverb
+#smbapasswd -a smbuser
+>密码(redhat)
+
+仅servera或serverb操作：
+#gluster volume  set custdata performance.stat-prefetch off
+#gluster volume set custdata server.allow-insecure on
+#gluster volume set custdata storage.batch-fsync-delay-usec 0
+
+#在servera和serverb都操作重启
+#systemctl restart glusterd.service
+
+仅servera或serverb操作：
+#gluster volume stop  custdata
+#gluster volume start custdata
+
+客户端验证：
+ssh root@workstation
+#vim /etc/fstab
+//172.25.250.15/gluster-custdata /mnt cifs user=smbuser,pass=redhat 0 0
+
+
+
++++++++++++++++++++++++++++++++++++++++++
+Georeplication区域复制
+是异步的数据复制(非实时)
+master卷
+slave卷
+使用的是gsyncd（修改版本的rsync）
+
+在真实主机重置虚拟机:
+#rht-vmctl reset servera
+#rht-vmctl reset serverb
+#rht-vmctl reset servere
+
+在workstation执行脚本:
+# lab georeplication setup
+脚本自动使用servera和serverb创建主卷mastervol,
+在servere创建从卷slavevol.
+在servere主机创建组geogroup，创建用户geoaccount，密码为redhat.
+
+在servera把主卷的集群共享功能打开
+[root@servera ~]# gluster volume list
+[root@servera ~]# gluster volume set all cluster.enable-shared-storage enable
+
+设置无密码连接(让servera可以密钥ssh登陆servere)
+[root@servera ~]# ssh-keygen -N '' -f /root/.ssh/id_rsa
+[root@servera ~]# ssh-copy-id -i ~/.ssh/id_rsa.pub geoaccount@servere
+
+
+在servere操作：
+普通用户没有mount命令的权限,有一个mountbroker进程可以让普通用户做mount.
+[root@servere ~]# mkdir -m 0711 /var/mountbroker-root/
+[root@servere ~]# semanage fcontext -a -e /home /var/mountbroker-root
+#restorecon -Rv /var/mountbroker-root/
+
+#/etc/selinux/targeted/contexts/files/file_contexts
+该文件不需要修改，参考即可.
+
+在servere操作修改配置：
+[root@servere ~]# gluster system:: execute mountbroker opt mountbroker-root /var/mountbroker-root
+设置mountbroker-root的工作目录是/var/mountbroker-root
+
+[root@servere ~]# gluster system:: execute mountbroker user geoaccount slavevol
+为slavevol卷设置mountbroker的账户为geoaccount
+
+[root@servere ~]# gluster system:: execute mountbroker opt geo-replication-log-group geogroup
+
+[root@servere ~]# gluster system:: execute mountbroker opt rpc-auth-allow-insecure on
+允许mountbroker使用大于1024的端口
+
+以上4条命令在修改/etc/glusterfs/glusterd.vol
+对应的是文件中的4行配置.
+
+[root@servere ~]# systemctl restart glusterd.service
+
+
+在servera操作：
+[root@servera ~]# gluster system:: execute gsec_create
+创建了一个ssh密钥对(用来作数据复制的密钥)
+
+[root@servera ~]# gluster volume geo-replication mastervol geoaccount@servere::slavevol create push-pem
+把公钥推送给servere的geoaccount账户.
+
+在servere操作:
+[root@servere ~]# ls /home/geoaccount/
+[root@servere ~]# /usr/libexec/glusterfs/set_geo_rep_pem_keys.sh geoaccount mastervol slavevol
+#cat /home/geoaccount/.ssh/authorized_keys
+
+在servera操作:
+[root@servera ~]# gluster volume  geo-replication mastervol geoaccount@servere::slavevol config use_meta_volume true
+跟踪数据的变化keeping track of changes
+
+[root@servera ~]# gluster volume  geo-replication mastervol geoaccount@servere::slavevol start
+
+
+
+
++++++++++++++++++++++++++++++++++++++++++
+替换brick:
+#gluster volume replace-brick 卷名称 旧brick 新的brick commit force
+#gluster volume heal 卷名称 info
+对应的案例是在workstation执行脚本：
+#lab selfheal setup
+
+
+BitRot保护功能(计算文件的哈希值)
+#gluster volume bitrot 卷名称 enable
+#gluster volume bitrot 卷名称 disable
+#find /path/to/brick/.glusterfs -name GFID
+
+
++++++++++++++++++++++++++++++++++++
+管理快照
+在真实主机执行
+[kiosk@foundation0 ~]$ rht-vmctl reset all
+
+在worksation执行脚本:
+#lab  snapshot-manage setup
+用servera和serverb创建了一个snapvol卷
+worksation自动mount卷到/mnt/snapvol目录
+并创建了一个名称为original的快照
+
+快照还原数据有两种方式:
+	1.集群管理员执行restore命令
+	2.客户端访问快照中的数据
+
+
+ssh root@servera
+[root@servera ~]# gluster snapshot list
+[root@servera ~]# gluster snapshot info original
+[root@servera ~]# gluster snapshot create abc snapvol
+为snapvol卷作一个名称为abc...的快照
+[root@servera ~]# gluster snapshot list
+[root@servera ~]# gluster snapshot create qq snapvol no-timestamp
+创建快照，不附加时间戳.
+#默认快照创建完成后状态为stoped,此时客户端无法访问和使用快照.
+[root@servera ~]# gluster snapshot activate qq
+登陆worksation客户端将mount取消
+[root@workstation ~]# umount /mnt/snapvol/
+
+在servera主机设置卷属性，让客户端可以访问快照数据
+[root@servera ~]# gluster volume  set snapvol features.uss enable
+
+登陆worksation客户端重新mount卷:
+[root@workstation ~]# mount /mnt/snapvol/
+[root@workstation ~]# ls -a /mnt/snapvol/
+[root@workstation ~]# cd /mnt/snapvol/.snaps
+
+/mnt/snapvol/目录是卷中的实时数据
+/mnt/snapvol/.snaps/qq/快照的数据
+
+#rm -rf /mnt/snapvol/*
+#cp /mnt/snapvol/.snaps/qq/* /mnt/snapvol/
+
+
+附加命令:（必须是集群管理员)
+#gluster snapshot activate 快照名称
+#gluster snapshot delete 快照名称
+#gluster snapshot delete volume 卷名称
+把卷的所有快照都删除
+#gluster snapshot clone 卷名称  快照名称
+#gluster snapshot restore 快照名称
+
+	
+++++++++++++++++++++++++++++++++++
+安装管理控制台(web)
+[kiosk@foundation0 ~]$ rht-vmctl reset all
+
+在worksation执行脚本:
+# lab console-install-lab setup
+servera和serverb是一个存储集群
+manager主机是集群的web控制台
+
+使用worksation远程登陆manager主机
+[root@manager ~]# yum -y install rhsc
+[root@manager ~]# rhsc-setup
+configure engine on this host:回车
+firewall[yes]:回车
+DNS name of this server:回车
+Egnine admin password:redhat
+confirm engine admin password:redhat
+Use week password?:yes
+certification证书:回车
+手动配置或自动配置[automatic]:回车
+proxy server[no]:回车
+would you like external monitoring to be enable?[yes]:回车
+Please confirm installation settings:回车
+
+使用浏览器访问：
+https://manager.lab.example.com:443/ovirt-engine
+点击Clusters---New:
+    name:gluster-cluster
+    勾选import existing gluster configure
+    address:servera.lab.example.com
+    password:redhat
+    点击OK
+    勾选use a common password
+    密码为redhat
+    点击apply，点击OK
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,143 @@
+RH236 Simulation Exam
+
+1,Configure a Red Hat Storage cluster
+Configure a Red Hat Storage trusted storage pool that contains the following noodes:
+	node1
+      node2
+      node3
+      node4
+
+
+2.Configure storage bricks for node1、node2、node3、node4：
+Configure node1 to provide the following storage bricks:
+	/bricks/test/testvol_n1
+	/bricks/data/testvol_n1
+Configure node2 to proide the following storage bricks:
+	/bricks/test/testvol_n2
+	/bricks/data/testvol_n2
+Additionally.each brick should conform to the following requirements:
+	Each brick should be 3 GiB in size
+	Each brick should utilize an apporpriately sized logieal volume
+	Each brick should be formatted as xfs with 512b sized inodes.
+
+Configure node3 to provide the following storage bricks:
+	/bricks/safe/testvol_n3
+	/bricks/data/testvol_n3	
+Configure node4 to proide the following storage bricks:
+	/bricks/safe/testvol_n4
+	/bricks/data/testvol_n4
+Additionally.each brick should conform to the following requirements:
+	Each brick should be 3 GiB in size
+	Each brick should utilize an apporpriately sized logieal volume
+	Each brick should be formatted as xfs with 512 b sized inodes.
+	The volume that uses this brick will need to support Red Hat Storage snapshots.
+
+
+3.Configure IO encryption for each volume on all nodes
+Configure your Storage cluster to support the IO encryption using the Certificate file:
+ftp://workstation.lab.example.com/pub
+
+
+4.Create a distributed volume.
+Create a distributed volume on your Red Hat Storage cluster according to the following requirements:
+	The volume uses the bricks node1:/bricks/test/testvol_n1 and node2:/bricks/test/testvo1_n2
+	The volume is named testvo1
+	The volume should allow read/write access to all systems in the 172.24.3.0/255.255.255.0 network.
+
+
+5.Create a replicated volume.
+Create a replieated volume on your Red  Hat Storage according to the following requirements
+   The volume uses the bricks node3:/bricks/safe/safevol_n3 and node4:bricks/safe/safevol_n4
+   The volume is named safevol
+   The volume should allow read/write access to all systems inthe 172.24.3.0/255.255.255.0 network
+
+
+6.Create a distributed replicated volume.
+create a distributed replieated volume on your Red  Hat Storage acconling to the following requirements
+   The volume uses the bricks:
+      node1:/bricks/data/datavol_n1
+      node2:/bricks/data/datavol_n2
+      node3:/bricks/data/datavol_n3
+      node4:/bricks/data/datavol_n4
+   The volume is named datavol
+   The volume should allow read/write access to all systems inthe 172.24.3.0/255.255.255.0 network
+
+
+7.Mount storage volumes on a client system
+Configure the system client.network3.example.com to mount you cluster volumes according to the following requirements:
+    testvol should be mounted as a gluster native filesystem under /test
+    safevol should be mounted as an NFS filesystem under /safe
+    datavol should be mounted as a CIFS filesystem under /data
+    All mounts should persist across system reboots
+
+
+8.Configure Storage limits
+Configure storage  limits  on client.network3.example.com according to the following requirements:
+   Create the directory /data/mailspool
+   Users on client.network3.eample.com should have read/write /data/mailspool
+   Users should not be able to use more than 192 MiB of space under /data/mailspool
+
+
+9.Configure asynchronous replication
+   The host node5 has been pre-configured a volume is slavevol
+   All data on datavol should be asynchronous replication to slavevol
+   The replication account can use the user geoaccount and the group geogroup
+
+
+10.Create a snapshot for safevol. The snapshot is named safe_snap.
+
+
+11.Manager Tier
+   The volume safevol should be have a replica hot tier
+   The hot tier uses the bricks:
+      node3:/bricks/tier/tiervol_n1
+      node4:/bricks/tier/tiervol_n1
+   Each bricks used all space that the ISCSI disk named sda on node3、node4
+
+
+12.Configure Nagios monitor the Red Hat Gluster Storage
+    There are three exams are blind to write,the one play for yourselves
+     
+
+13.Configure a directory with acess controls
+  On the system client create a directory and secure it a according to the following requirements:
+   create the directory /test/confidential
+   /test/confidential should be owned by the user root and the group admins
+   the user suresh should have read and write access to /test/confidential and any other future directories or files created under this directory;however this user should not be able to acess any other directories or files which belong to the group admins.
+   the user anita should have read acess to /test/confidential and any other future directories or files created under this directory;however this user should not be able tgo acess any other directories or files which belong to the group admins
+   all other users should not be able to acess /test/confidential
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
