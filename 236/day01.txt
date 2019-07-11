@@ -1,57 +1,57 @@
-RH236(GlusterFS·Ö²¼Ê½´æ´¢·þÎñÆ÷)
+RH236(GlusterFSåˆ†å¸ƒå¼å­˜å‚¨æœåŠ¡å™¨)
 glusterfs
 
-rootÃÜÂë:Asimov
-kioskÃÜÂë:redhat
-ÐéÄâ»úroot:redhat
+rootå¯†ç :Asimov
+kioskå¯†ç :redhat
+è™šæ‹Ÿæœºroot:redhat
 yum -y install tigervnc
 vncveiwer 172.25.254.250:8
 
-½²Ê¦Ö÷»ú£º
-        clasroom½ÌÊÒÀï,¹²Ïí·þÎñ
+è®²å¸ˆä¸»æœºï¼š
+        clasroomæ•™å®¤é‡Œ,å…±äº«æœåŠ¡
         content.example.com
         materials.example.com
         classroom.example.com
-ÎïÀíÖ÷»úÉÏµÄÐéÄâ»ú£º
-        server{a..e}:¹²Ïí·þÎñÆ÷
-        workstation:¿Í»§¶Ë
-        manager:Web console¹ÜÀíGlusterFS
+ç‰©ç†ä¸»æœºä¸Šçš„è™šæ‹Ÿæœºï¼š
+        server{a..e}:å…±äº«æœåŠ¡å™¨
+        workstation:å®¢æˆ·ç«¯
+        manager:Web consoleç®¡ç†GlusterFS
 
 #rht-vmctl  status    all
-#rht-vmctl  start     ÐéÄâ»úÃû³Æ
-#rht-vmctl  fullreset ÐéÄâ»úÃû³Æ
+#rht-vmctl  start     è™šæ‹Ÿæœºåç§°
+#rht-vmctl  fullreset è™šæ‹Ÿæœºåç§°
 
-GlusterFSÌØÉ«£º
-1.¶¯Ì¬À©ÈÝ¡¢Ëõ¼õ
-2.·ÇÖÐÐÄ»¯Éè¼Æ
-3.¸ß¿ÉÓÃ
-4.¼æÈÝÆÕÍ¨µÄÖ÷»ú
-        1.ÏÖÓÐµÄLinux,ÅäyumÔ´,yum°²×°Èí¼þ°ü
-        2.Âã»ú°²×°£¨iso)
+GlusterFSç‰¹è‰²ï¼š
+1.åŠ¨æ€æ‰©å®¹ã€ç¼©å‡
+2.éžä¸­å¿ƒåŒ–è®¾è®¡
+3.é«˜å¯ç”¨
+4.å…¼å®¹æ™®é€šçš„ä¸»æœº
+        1.çŽ°æœ‰çš„Linux,é…yumæº,yumå®‰è£…è½¯ä»¶åŒ…
+        2.è£¸æœºå®‰è£…ï¼ˆiso)
 
-²½Öè£º
+æ­¥éª¤ï¼š
 #ssh root@workstation
 #lab install-rhs setup
-Ê¹ÓÃÍ¼ÐÎµã»÷serveraÐéÄâ»ú
-¸ù¾ÝÌáÊ¾°²×°glusterfs
-        1.°²×°´ÅÅÌ£¬Ñ¡Ôñvda
-        2.ÍøÂçÑ¡on
-        3.ÅäÖÃrootÃÜÂë
-°²×°¹âÅÌµÄÎ»ÖÃ£º
+ä½¿ç”¨å›¾å½¢ç‚¹å‡»serveraè™šæ‹Ÿæœº
+æ ¹æ®æç¤ºå®‰è£…glusterfs
+        1.å®‰è£…ç£ç›˜ï¼Œé€‰æ‹©vda
+        2.ç½‘ç»œé€‰on
+        3.é…ç½®rootå¯†ç 
+å®‰è£…å…‰ç›˜çš„ä½ç½®ï¼š
 
-ÎªÁËÁ¬½ÓÐéÄâ»ú¸ü·½±ã¿ÉÒÔÉ¾³ýconfigÅäÖÃ
+ä¸ºäº†è¿žæŽ¥è™šæ‹Ÿæœºæ›´æ–¹ä¾¿å¯ä»¥åˆ é™¤configé…ç½®
 rm -rf /home/kiosk/.ssh/config
 
 
 
 ++++++++++++++++++++++++++++++++++
-ÊµÑé£º´´½¨GlusterFS¼¯Èº´æ´¢
-¸ÅÄî£º
-  node´æ´¢·þÎñÆ÷µÄ½Úµã(server{a..e})
-  trusted storage poolÐÅÈÎ´æ´¢³Ø
-  Brick(×¼±¸µÄ¹²ÏíÎÄ¼þÏµÍ³)
-  volume(¶à¸öbrick×éºÏÎªÒ»¸ö¹²Ïí¾í)
-²½Öè1´´½¨ÐÅÈÎ´æ´¢³Ø£¨Ê¹ÓÃserveraºÍserverb×÷¹²Ïí£©£º
+å®žéªŒï¼šåˆ›å»ºGlusterFSé›†ç¾¤å­˜å‚¨
+æ¦‚å¿µï¼š
+  nodeå­˜å‚¨æœåŠ¡å™¨çš„èŠ‚ç‚¹(server{a..e})
+  trusted storage poolä¿¡ä»»å­˜å‚¨æ± 
+  Brick(å‡†å¤‡çš„å…±äº«æ–‡ä»¶ç³»ç»Ÿ)
+  volume(å¤šä¸ªbrickç»„åˆä¸ºä¸€ä¸ªå…±äº«å·)
+æ­¥éª¤1åˆ›å»ºä¿¡ä»»å­˜å‚¨æ± ï¼ˆä½¿ç”¨serveraå’Œserverbä½œå…±äº«ï¼‰ï¼š
 # ssh root@servera
 # gluster peer status
 # firewall-cmd --add-service=glusterfs
@@ -59,15 +59,15 @@ rm -rf /home/kiosk/.ssh/config
 # ssh root@serverb
 # firewall-cmd --add-service=glusterfs
 # firewall-cmd --runtime-to-permanent
-Ïë°ÑÒ»Ì¨Ö÷»ú´ÓÐÅÈÎ³ØÖÐÉ¾³ý£º
+æƒ³æŠŠä¸€å°ä¸»æœºä»Žä¿¡ä»»æ± ä¸­åˆ é™¤ï¼š
 [root@servera ~]# gluster peer detach serverb
 [root@servera ~]# gluster peer probe serverb.lab.example.com
 
-²½Öè2£º×¼±¸bricks
-serveraºÍserverb×¼±¸¹²ÏíÓÃµÄlvÂß¼­¾í(brick)
-´ÅÅÌ--->PV--->VG--->LV³Ø---->LV
-#pvcreate /dev/´ÅÅÌÃû³Æ
-#vgcreate vgÃû³Æ  /dev/´ÅÅÌÃû³Æ
+æ­¥éª¤2ï¼šå‡†å¤‡bricks
+serveraå’Œserverbå‡†å¤‡å…±äº«ç”¨çš„lvé€»è¾‘å·(brick)
+ç£ç›˜--->PV--->VG--->LVæ± ---->LV
+#pvcreate /dev/ç£ç›˜åç§°
+#vgcreate vgåç§°  /dev/ç£ç›˜åç§°
 # lvcreate -L 10G -T vg_bricks/thinpool
 #lvcreate -V 2G -T vg_bricks/thinpool -n brick-a1
 #mkfs.xfs -i size=512 /dev/vg_bricks/brick-a1
@@ -77,16 +77,16 @@ serveraºÍserverb×¼±¸¹²ÏíÓÃµÄlvÂß¼­¾í(brick)
 #mount -a
 #mkdir /bricks/brick-a1/brick
 # restorecon -Rv /bricks
-»òÕß
-# chcon -t glusterd_brick_t Ä¿Â¼Ãû³Æ
+æˆ–è€…
+# chcon -t glusterd_brick_t ç›®å½•åç§°
 
 #ll -Zd /bricks/brick-a1/brick/
-²é¿´SElinux°²È«ÉÏÏÂÎÄÊÇ·ñÕýÈ·
+æŸ¥çœ‹SElinuxå®‰å…¨ä¸Šä¸‹æ–‡æ˜¯å¦æ­£ç¡®
 
-[[½«ÉÏÃæserveraµÄ²Ù×÷ÔÚserverbÉÏÖØ¸´Ö´ÐÐÒ»±é]]
+[[å°†ä¸Šé¢serveraçš„æ“ä½œåœ¨serverbä¸Šé‡å¤æ‰§è¡Œä¸€é]]
 
 
-²½Öè3´´½¨¹²Ïívolumes¾í(ÔÚservera»òÕßserverbÖ´ÐÐ£©
+æ­¥éª¤3åˆ›å»ºå…±äº«volumeså·(åœ¨serveraæˆ–è€…serverbæ‰§è¡Œï¼‰
 [root@serverb ~]# gluster volume list
 
 [root@serverb ~]#gluster volume create firstvol \
@@ -97,7 +97,7 @@ serverb:/bricks/brick-b1/brick
 [root@serverb ~]# gluster volume info firstvol
 [root@serverb ~]# gluster volume start firstvol
 
-²½Öè4¿Í»§¶Ë²âÊÔ£º
+æ­¥éª¤4å®¢æˆ·ç«¯æµ‹è¯•ï¼š
 # ssh root@workstation
 [root@workstation ~]# yum install glusterfs-fuse
 [root@workstation ~]# touch /mnt/file{0..100}
@@ -107,7 +107,7 @@ serverb:/bricks/brick-b1/brick
 
 
 
-ÊµÑé£º´´½¨¸÷ÖÖÀàÐÍµÄvolume¾í
+å®žéªŒï¼šåˆ›å»ºå„ç§ç±»åž‹çš„volumeå·
 # rht-vmctl fullreset servera
 # rht-vmctl fullreset serverb
 # ssh root@workstation
@@ -119,12 +119,12 @@ serverb:/bricks/brick-b1/brick
 # gluster volume  info replvol
 # gluster volume  start replvol
 
-¿Í»§¶Ë²âÊÔ£º
+å®¢æˆ·ç«¯æµ‹è¯•ï¼š
 # mount -t glusterfs servera:replvol /mnt/
 # touch /mnt/file{1..100}
 
-²½Öè2£º´´½¨disperse¾í
-N=K+M  £¨KÊÇÊý¾ÝÅÌ¸öÊý£¬MÐ£ÑéÅÌ¸öÊý)
+æ­¥éª¤2ï¼šåˆ›å»ºdisperseå·
+N=K+M  ï¼ˆKæ˜¯æ•°æ®ç›˜ä¸ªæ•°ï¼ŒMæ ¡éªŒç›˜ä¸ªæ•°)
 serverc:/bricks/brick-c1/brick \
 serverd:/bricks/brick-d1/brick \
 servera:/bricks/brick-a2/brick \
@@ -135,17 +135,17 @@ serverd:/bricks/brick-d2/brick force
 
 # gluster volume start dispervol
 
-¿Í»§¶Ë²âÊÔ£º
+å®¢æˆ·ç«¯æµ‹è¯•ï¼š
 # mount -t glusterfs servera:dispervol /mnt/
 # dd if=/dev/zero of=/mnt/a.txt bs=1M count=50
 
 
-¸´ºÏ¾í£º
-·Ö²¼Ê½¸´ÖÆ¾í
-·Ö²¼Ê½disperse¾í
+å¤åˆå·ï¼š
+åˆ†å¸ƒå¼å¤åˆ¶å·
+åˆ†å¸ƒå¼disperseå·
 
 
-²½Öè3£º´´½¨¸´ÖÆ¾í(servera»òÕßserverb²Ù×÷)
+æ­¥éª¤3ï¼šåˆ›å»ºå¤åˆ¶å·(serveraæˆ–è€…serverbæ“ä½œ)
 # gluster volume create replvol replica 2 \
 > servera:/bricks/brick-a1/brick \
 > serverb:/bricks/brick-b1/brick \

@@ -1,52 +1,52 @@
-¸÷ÖÖ¾íµÄÀàĞÍÍ¼Ê½£º
+å„ç§å·çš„ç±»å‹å›¾å¼ï¼š
 http://classroom.example.com/content/slides/RH236-RHGS3.1-en-1-20160627-slides.pdf
 
 
-¿Í»§¶Ë·ÃÎÊ£º
-1.Ô­Éú¹ÒÔØ
-2.NFS¹ÒÔØ
-3.CIFS¹ÒÔØ
+å®¢æˆ·ç«¯è®¿é—®ï¼š
+1.åŸç”ŸæŒ‚è½½
+2.NFSæŒ‚è½½
+3.CIFSæŒ‚è½½
 
-Ô­Éú¹ÒÔØ£º
-	ÒªÇó£º¿Í»§¶ËĞèÒª°²×°glusterfs-fuse
-	mount -t glusterfs servera:/¾íÃû³Æ  Ä¿Â¼
-	¹ÒÔØÑ¡Ïî:
-	backup-volfile-servers=<server1>:<server2>...Ö¸¶¨±¸ÓÃ·şÎñÆ÷
-	ro Ö»¶ÁÊôĞÔ
-	aclÖ§³Ö·ÃÎÊ¿ØÖÆÁĞ±ísetfacl,getfacl
-	_netdevÍøÂçÉè±¸
+åŸç”ŸæŒ‚è½½ï¼š
+	è¦æ±‚ï¼šå®¢æˆ·ç«¯éœ€è¦å®‰è£…glusterfs-fuse
+	mount -t glusterfs servera:/å·åç§°  ç›®å½•
+	æŒ‚è½½é€‰é¡¹:
+	backup-volfile-servers=<server1>:<server2>...æŒ‡å®šå¤‡ç”¨æœåŠ¡å™¨
+	ro åªè¯»å±æ€§
+	aclæ”¯æŒè®¿é—®æ§åˆ¶åˆ—è¡¨setfacl,getfacl
+	_netdevç½‘ç»œè®¾å¤‡
 rht-vmctl reset all
 ssh root@workstation
 [root@workstation ~]# lab native-client setup
-½Å±¾×Ô¶¯Ê¹ÓÃservera-serverd´´½¨custdata¾í
+è„šæœ¬è‡ªåŠ¨ä½¿ç”¨servera-serverdåˆ›å»ºcustdataå·
 
-¿Í»§¶Ë·ÃÎÊ(workstation)
+å®¢æˆ·ç«¯è®¿é—®(workstation)
 [root@workstation ~]# mkdir /mnt/custdata
 [root@workstation ~]# vim /etc/fstab
 servera:/custdata  /mnt/custdata  glusterfs _netdev,backup-volfile-servers=serverb:serverc:serverd 0 0
 [root@workstation ~]# mount -a
 [root@workstation ~]# touch /mnt/custdata/file{0..30}
-°Ñservera¹Ø»ú,µÈ´ıÒ»»á
+æŠŠserveraå…³æœº,ç­‰å¾…ä¸€ä¼š
 [root@workstation ~]# ls /mnt/custdata
-¹ÒÔØÈÕÖ¾:
+æŒ‚è½½æ—¥å¿—:
 tail /var/log/glusterfs/mnt-custdata.log
 [root@workstation ~]# umount /mnt/custdata
-°ÑserveraÆô¶¯
+æŠŠserveraå¯åŠ¨
 
 **********************************
-NFS¹ÒÔØ
-	glusterfs×Ô¼ºÉè¼ÆµÄNFSÈí¼ş,v3
-	Ö»Òª´´½¨²¢Æô¶¯¾í£¬gluster¾Í»á×Ô¶¯´´½¨¶ÔÓ¦µÄNFS¹²Ïí
-	ĞèÒªĞŞ¸Ä·À»ğÇ½²ßÂÔ
-ÔÚworkstationÖ´ĞĞ
+NFSæŒ‚è½½
+	glusterfsè‡ªå·±è®¾è®¡çš„NFSè½¯ä»¶,v3
+	åªè¦åˆ›å»ºå¹¶å¯åŠ¨å·ï¼Œglusterå°±ä¼šè‡ªåŠ¨åˆ›å»ºå¯¹åº”çš„NFSå…±äº«
+	éœ€è¦ä¿®æ”¹é˜²ç«å¢™ç­–ç•¥
+åœ¨workstationæ‰§è¡Œ
 #lab nfs-client setup	
 
-ÔÚserveraÉÏÉèÖÃ·À»ğÇ½¹æÔò
+åœ¨serveraä¸Šè®¾ç½®é˜²ç«å¢™è§„åˆ™
 # firewall-cmd --add-service=rpc-bind --add-service=nfs
 # firewall-cmd --runtime-to-permanent
 success
 	
-ÔÚworkstation¿Í»§¶Ë·ÃÎÊ
+åœ¨workstationå®¢æˆ·ç«¯è®¿é—®
 # mkdir /mnt/mediadata
 # vim /etc/fstab
 servera:/mediadata  /mnt/mediadata nfs defaults 0 0
@@ -54,10 +54,10 @@ servera:/mediadata  /mnt/mediadata nfs defaults 0 0
 # umount /mnt/mediadata
 
 **********************************
-CIFS·ÃÎÊ(samba)
-ÔÚworkstationÖ´ĞĞ:
+CIFSè®¿é—®(samba)
+åœ¨workstationæ‰§è¡Œ:
 # lab smb-client setup
-ÔÚserveraÖ´ĞĞ£º
+åœ¨serveraæ‰§è¡Œï¼š
 [root@servera ~]# firewall-cmd --add-service=samba
 [root@servera ~]# firewall-cmd --runtime-to-permanent
 
@@ -65,28 +65,28 @@ CIFS·ÃÎÊ(samba)
 [root@servera ~]# systemctl enable smb.service
 [root@servera ~]# systemctl start smb.service
 
-°Ñmediadata¾íÍ¨¹ısamba¹²Ïí³öÈ¥:
+æŠŠmediadataå·é€šè¿‡sambaå…±äº«å‡ºå»:
 [root@servera ~]# yum -y install samba-vfs-glusterfs
 [root@servera ~]# gluster volume set mediadata stat-prefetch off
 [root@servera ~]# gluster volume set mediadata server.allow-insecure on
-ÔÊĞíÊ¹ÓÃ´óÓÚ1024µÄ¶Ë¿Ú
+å…è®¸ä½¿ç”¨å¤§äº1024çš„ç«¯å£
 [root@servera ~]# gluster volume set mediadata storage.batch-fsync-delay-usec 0
-ÉèÖÃÑÓ³ÙÊ±¼äÎª0
+è®¾ç½®å»¶è¿Ÿæ—¶é—´ä¸º0
 [root@servera ~]# systemctl restart glusterd.service
 [root@servera ~]# gluster volume stop mediadata
 [root@servera ~]# gluster volume start mediadata
-ÖØĞÂÆô¶¯¾íglusterfs³ö·¢ÁËÒ»¸ö½Å±¾£¬ÓÉÕâ¸ö½Å±¾×Ô¶¯ĞŞ¸ÄÁËsmabaµÄÅäÖÃÎÄ¼ş.
+é‡æ–°å¯åŠ¨å·glusterfså‡ºå‘äº†ä¸€ä¸ªè„šæœ¬ï¼Œç”±è¿™ä¸ªè„šæœ¬è‡ªåŠ¨ä¿®æ”¹äº†smabaçš„é…ç½®æ–‡ä»¶.
 /var/lib/glusterd/hooks/1/start/post/
 S30samba-start.sh
 
-ÔÚservera´´½¨sambaÕË»§:
+åœ¨serveraåˆ›å»ºsambaè´¦æˆ·:
 [root@servera ~]# adduser smbuser
 [root@servera ~]# smbpasswd -a smbuser
-New SMB password:<ÊäÈëÃÜÂë>
-Retype new SMB password:<ÊäÈëÃÜÂë>
+New SMB password:<è¾“å…¥å¯†ç >
+Retype new SMB password:<è¾“å…¥å¯†ç >
 Added user smbuser.
 
-¿Í»§¶Ë·ÃÎÊ(workstation)
+å®¢æˆ·ç«¯è®¿é—®(workstation)
 [root@workstation ~]# yum -y install samba-client
 [root@workstation ~]# yum -y install cifs-utils.x86_64
 [root@workstation ~]# smbclient -L servera -U smbuser%redhat
@@ -95,63 +95,63 @@ Added user smbuser.
 //servera/gluster-mediadata /mnt/smbdata cifs user=smbuser,pass=redhat 0 0
 
 
-²éÑ¯µÄ·½·¨£º
-#gluster volume set help |grep ¹Ø¼ü´Ê
-#gluster volume get <¾íÃû³Æ> all
+æŸ¥è¯¢çš„æ–¹æ³•ï¼š
+#gluster volume set help |grep å…³é”®è¯
+#gluster volume get <å·åç§°> all
 
 
-ÉèÖÃ¾íµÄÑ¡ÏîÊôĞÔ£º
-gluster volume set <¾íÃû³Æ>  <Ñ¡Ïî> <Öµ>
-²éÑ¯¾íµÄÊôĞÔ:
-gluster volume info <¾íÃû³Æ>
-ÖØÖÃ¾íµÄÊôĞÔ:
-gluster volume reset <¾íÃû³Æ> <Ñ¡Ïî>
+è®¾ç½®å·çš„é€‰é¡¹å±æ€§ï¼š
+gluster volume set <å·åç§°>  <é€‰é¡¹> <å€¼>
+æŸ¥è¯¢å·çš„å±æ€§:
+gluster volume info <å·åç§°>
+é‡ç½®å·çš„å±æ€§:
+gluster volume reset <å·åç§°> <é€‰é¡¹>
 
-³£¼ûÓĞÓÃµÄÊôĞÔ:
-ÊôĞÔ			Ä¬ÈÏÖµ		
+å¸¸è§æœ‰ç”¨çš„å±æ€§:
+å±æ€§			é»˜è®¤å€¼		
 auth.allow  		*
-auth.reject		¿Õ
+auth.reject		ç©º
 nfs.rpc-auth-allow 	*
-nfs.rpc-auth-reject	¿Õ
+nfs.rpc-auth-reject	ç©º
 nfs.disable		off
 features.read-only	off
 server.root-squash	off
 
-Èç¹ûÍ¬Ê±ÓĞauth.allowºÍauth.rejectÔò¾Ü¾øÓÅÏÈ
-Èç¹ûÊ¹ÓÃroot¹ÒÔØnfs£¬Ôòroot»á±»×Ô¶¯½µ¼¶Îªnfsnobody
+å¦‚æœåŒæ—¶æœ‰auth.allowå’Œauth.rejectåˆ™æ‹’ç»ä¼˜å…ˆ
+å¦‚æœä½¿ç”¨rootæŒ‚è½½nfsï¼Œåˆ™rootä¼šè¢«è‡ªåŠ¨é™çº§ä¸ºnfsnobody
 firewall-cmd --set-default-zone=trusted 
 
-ÊµÑé£º
-ÖØÖÃĞéÄâ»ú,ÔÚworkstationÖ´ĞĞ½Å±¾
+å®éªŒï¼š
+é‡ç½®è™šæ‹Ÿæœº,åœ¨workstationæ‰§è¡Œè„šæœ¬
 # lab volopts setup
 
-ÔÚserveraÖ´ĞĞ£º
+åœ¨serveraæ‰§è¡Œï¼š
 [root@servera ~]# gluster volume  list
 [root@servera ~]# firewall-cmd --set-default-zone=trusted 
 [root@servera ~]# gluster volume set galactica server.root-squash on
 [root@servera ~]# gluster volume set galactica auth.reject 172.25.250.13
 [root@servera ~]# gluster volume set galactica nfs.rpc-auth-reject 172.25.250.13
 	
-ÔÚ¿Í»§¶Ëworkstation²Ù×÷£º
+åœ¨å®¢æˆ·ç«¯workstationæ“ä½œï¼š
 [root@workstation ~]# mkdir /mnt/galactica
 [root@workstation ~]# mount servera:/galactica  /mnt/galactica/
 [root@workstation ~]# cd /mnt/galactica/
-[root@workstation ~]# touch ÎÄ¼şÊ§°Ü
+[root@workstation ~]# touch æ–‡ä»¶å¤±è´¥
 
-ÔÚ¿Í»§¶Ëserverd²Ù×÷£º
+åœ¨å®¢æˆ·ç«¯serverdæ“ä½œï¼š
 [root@serverd ~]# mkdir /mnt/galactica
 [root@serverd ~]# mount servera:/galactica  /mnt/galactica/
-¹ÒÔØÊ§°Ü£¡£¡£¡
+æŒ‚è½½å¤±è´¥ï¼ï¼ï¼
 
 
-ACLºÍQuotas:
+ACLå’ŒQuotas:
 
-ACLÊµÑé£º
-ÔÚworkstaitonÖ´ĞĞ½Å±¾£º
+ACLå®éªŒï¼š
+åœ¨workstaitonæ‰§è¡Œè„šæœ¬ï¼š
 # lab acls setup
-½Å±¾×Ô¶¯ÔÚworkstation´´½¨ÁËÓÃ»§ºÍ×é:
-ÓÃ»§:simon,boss,dave
-×é£ºadmins:x:10000:simon,dave
+è„šæœ¬è‡ªåŠ¨åœ¨workstationåˆ›å»ºäº†ç”¨æˆ·å’Œç»„:
+ç”¨æˆ·:simon,boss,dave
+ç»„ï¼šadmins:x:10000:simon,dave
     managers:x:10001:simon,boss
 
 # yum -y install glusterfs-fuse
@@ -163,8 +163,8 @@ _netdev,acl 0 0
 # mkdir /mnt/groupdata/admindocs
 # chgrp admins /mnt/groupdata/admindocs/
 # chmod 2770 /mnt/groupdata/admindocs/
-sgid¶ÔÄ¿Â¼µÄ×÷ÓÃÊÇ£ºÈÎºÎÈËÔÚ¸ÃÄ¿Â¼ÏÂ´´½¨ĞÂµÄÄ¿Â¼ºÍÎÄ¼ş£¬ÔòËùÊô×é¶¼ÊÇadmins
-²âÊÔ£º
+sgidå¯¹ç›®å½•çš„ä½œç”¨æ˜¯ï¼šä»»ä½•äººåœ¨è¯¥ç›®å½•ä¸‹åˆ›å»ºæ–°çš„ç›®å½•å’Œæ–‡ä»¶ï¼Œåˆ™æ‰€å±ç»„éƒ½æ˜¯admins
+æµ‹è¯•ï¼š
 # su - dave
 # cd /mnt/groupdata/admindocs/
 # touch dave.txt
@@ -173,61 +173,61 @@ sgid¶ÔÄ¿Â¼µÄ×÷ÓÃÊÇ£ºÈÎºÎÈËÔÚ¸ÃÄ¿Â¼ÏÂ´´½¨ĞÂµÄÄ¿Â¼ºÍÎÄ¼ş£¬ÔòËùÊô×é¶¼ÊÇadmins
 # setfacl -R -m g:admins:rwX /mnt/groupdata/admindocs/
 # setfacl -R -m d:g:admins:rwX /mnt/groupdata/admindocs/
 
-´óĞ´µÄX£¬½öµ±Ô­Ê¼ÎÄ¼ş»òÄ¿Â¼ÓĞxÈ¨ÏŞÊ±£¬²Å¸øacl¸½¼ÓxÈ¨ÏŞ£¬·ñÔò²»¸½¼ÓxÈ¨ÏŞ¡£
-dÊÇÉèÖÃÄ¬ÈÏACL(default),ÒÔºóÔÚ¸ÃÄ¿Â¼ÏÂ´´½¨µÄĞÂÄ¿Â¼ºÍÎÄ¼ş£¬¶¼×Ô¼º¾ßÓĞacl
+å¤§å†™çš„Xï¼Œä»…å½“åŸå§‹æ–‡ä»¶æˆ–ç›®å½•æœ‰xæƒé™æ—¶ï¼Œæ‰ç»™aclé™„åŠ xæƒé™ï¼Œå¦åˆ™ä¸é™„åŠ xæƒé™ã€‚
+dæ˜¯è®¾ç½®é»˜è®¤ACL(default),ä»¥ååœ¨è¯¥ç›®å½•ä¸‹åˆ›å»ºçš„æ–°ç›®å½•å’Œæ–‡ä»¶ï¼Œéƒ½è‡ªå·±å…·æœ‰acl
 # su - dave
 # touch /mnt/groupdata/admindocs/b.txt
 
 
-Åä¶îÊµÑé£º
-ÖØÖÃĞéÄâ»úserveraºÍserverb
-ÔÚworkstationÖ´ĞĞ½Å±¾£º
+é…é¢å®éªŒï¼š
+é‡ç½®è™šæ‹Ÿæœºserveraå’Œserverb
+åœ¨workstationæ‰§è¡Œè„šæœ¬ï¼š
 # lab quotas setup
-½Å±¾×Ô¶¯ÔÚserveraºÍserverb´´½¨¹²Ïí¾í£¬×Ô¶¯ÔÚworkstationÖ´ĞĞmount¹ÒÔØ
-glusterfsÖ§³Ö¶ÔÄ¿Â¼µÄÅä¶î£¬ĞèÒª¿Í»§¶ËÖØĞÂmount
+è„šæœ¬è‡ªåŠ¨åœ¨serveraå’Œserverbåˆ›å»ºå…±äº«å·ï¼Œè‡ªåŠ¨åœ¨workstationæ‰§è¡ŒmountæŒ‚è½½
+glusterfsæ”¯æŒå¯¹ç›®å½•çš„é…é¢ï¼Œéœ€è¦å®¢æˆ·ç«¯é‡æ–°mount
 
-ÔÚworkstationÖ´ĞĞ£º
+åœ¨workstationæ‰§è¡Œï¼š
 # umount /mnt/graphics/
 
-ÔÚservera»òserverbÖ´ĞĞÃüÁî£º
-¿ªÆôÅä¶î¹¦ÄÜ
+åœ¨serveraæˆ–serverbæ‰§è¡Œå‘½ä»¤ï¼š
+å¼€å¯é…é¢åŠŸèƒ½
 [root@servera ~]# gluster volume quota graphics enable
-¿ªÆôÓ²Åä¶îºÍÈíÅä¶î:
+å¼€å¯ç¡¬é…é¢å’Œè½¯é…é¢:
 [root@servera ~]# gluster volume  quota graphics limit-usage /raw 1GB
 [root@servera ~]# gluster volume quota graphics default-soft-limit 50%
-»òÕß
+æˆ–è€…
 [root@servera ~]# gluster volume  quota graphics limit-usage /raw 1GB 50%
-ÈíÅä¶îÊÇÒ»¸ö°Ù·Ö±È£¬µ½´ïÓ²Åä¶î°Ù·ÖÖ®¶àÉÙÊ±¿ªÊ¼¾¯¸æ(ÈÕÖ¾)
+è½¯é…é¢æ˜¯ä¸€ä¸ªç™¾åˆ†æ¯”ï¼Œåˆ°è¾¾ç¡¬é…é¢ç™¾åˆ†ä¹‹å¤šå°‘æ—¶å¼€å§‹è­¦å‘Š(æ—¥å¿—)
 
-Åä¶îÊÇ·ÇÊµÊ±¸üĞÂ(Ä¬ÈÏÖµÎª60Ãë)
+é…é¢æ˜¯éå®æ—¶æ›´æ–°(é»˜è®¤å€¼ä¸º60ç§’)
 [root@servera ~]# gluster volume quota graphics soft-timeout 1s
 [root@servera ~]# gluster volume quota graphics hard-timeout 1s
-²é¿´Åä¶î
+æŸ¥çœ‹é…é¢
 [root@servera ~]# gluster volume  quota graphics list
 
-¿Í»§¶Ë¹ÒÔØ²âÊÔ£º
+å®¢æˆ·ç«¯æŒ‚è½½æµ‹è¯•ï¼š
 [root@workstation ~]# mount -a
 [root@workstation ~]# dd if=/dev/zero of=/mnt/graphics/raw/a.txt bs=1M count=100
 [root@workstation ~]# dd if=/dev/zero of=/mnt/graphics/raw/b.txt bs=1M
 
-Ä¬ÈÏ½ö¹ÜÀíÔ±¿ÉÒÔ²é¿´Åä¶î£¬¿Í»§¶ËÎŞ·¨²é¿´Åä¶î:
-ÔÚservera»òserverbÖ´ĞĞ:
+é»˜è®¤ä»…ç®¡ç†å‘˜å¯ä»¥æŸ¥çœ‹é…é¢ï¼Œå®¢æˆ·ç«¯æ— æ³•æŸ¥çœ‹é…é¢:
+åœ¨serveraæˆ–serverbæ‰§è¡Œ:
 [root@servera ~]# gluster volume set graphics quota-deem-statfs on
-¿ÉÒÔÈÃ¿Í»§¶ËÍ¨¹ıdfÃüÁî²é¿´Åä¶î
+å¯ä»¥è®©å®¢æˆ·ç«¯é€šè¿‡dfå‘½ä»¤æŸ¥çœ‹é…é¢
 [root@workstation ~]# df /mnt/graphics/raw/
 
 ++++++++++++++++++++++++++++++++++++++++++++
-À©ÈİºÍËõ¼õ¾í
+æ‰©å®¹å’Œç¼©å‡å·
 
-À©ÈİÊµÑé£º
-ÖØÖÃservera-serverd
-ÔÚworkstationÖ´ĞĞ½Å±¾£º
+æ‰©å®¹å®éªŒï¼š
+é‡ç½®servera-serverd
+åœ¨workstationæ‰§è¡Œè„šæœ¬ï¼š
 [root@workstation ~]# lab extendvolume setup
-½Å±¾×Ô¶¯½«servera,serverb,serverc,serverd¼ÓÈëĞÅÈÎ³Ø
-Ê¹ÓÃserveraºÍserverb´´½¨ÁËÒ»¸ö¸´ÖÆ¾í
-servercºÍserverdÌáÇ°´´½¨ºÃÁËbrick
+è„šæœ¬è‡ªåŠ¨å°†servera,serverb,serverc,serverdåŠ å…¥ä¿¡ä»»æ± 
+ä½¿ç”¨serveraå’Œserverbåˆ›å»ºäº†ä¸€ä¸ªå¤åˆ¶å·
+servercå’Œserverdæå‰åˆ›å»ºå¥½äº†brick
 
-ÔÚservera-serverdÈÎÒâÖ÷»ú²Ù×÷£º
+åœ¨servera-serverdä»»æ„ä¸»æœºæ“ä½œï¼š
 # gluster volume  add-brick extendme  \
 > serverc:/bricks/brick-c1/brick \
 > serverd:/bricks/brick-d1/brick
@@ -236,32 +236,32 @@ servercºÍserverdÌáÇ°´´½¨ºÃÁËbrick
 [root@servera ~]# gluster volume  rebalance extendme start
 [root@servera ~]# gluster volume  rebalance extendme status
 
-Êı¾İrebalance²ßÂÔ:
-# gluster volume set ¾íÃû³Æ cluster.rebal-throttle <²ßÂÔ>
-   lazy:Ò»´Î½öÔÊĞíÇ¨ÒÆÒ»¸öÎÄ¼ş
-   normal:Ä¬ÈÏ£¬Ò»´ÎÇ¨ÒÆ2¸öÎÄ¼ş»òÕß(ÄÚºËÊıÁ¿-4)/2,È¡×î´óÖµ
-   aggressive:Ò»´ÎÇ¨ÒÆ4¸öÎÄ¼ş»òÕß(ÄÚºËÊıÁ¿-4)/2,È¡×î´óÖµ
+æ•°æ®rebalanceç­–ç•¥:
+# gluster volume set å·åç§° cluster.rebal-throttle <ç­–ç•¥>
+   lazy:ä¸€æ¬¡ä»…å…è®¸è¿ç§»ä¸€ä¸ªæ–‡ä»¶
+   normal:é»˜è®¤ï¼Œä¸€æ¬¡è¿ç§»2ä¸ªæ–‡ä»¶æˆ–è€…(å†…æ ¸æ•°é‡-4)/2,å–æœ€å¤§å€¼
+   aggressive:ä¸€æ¬¡è¿ç§»4ä¸ªæ–‡ä»¶æˆ–è€…(å†…æ ¸æ•°é‡-4)/2,å–æœ€å¤§å€¼
 
 
-Ëõ¼õ¾íÊµÑé£º
+ç¼©å‡å·å®éªŒï¼š
 [root@servera ~]# gluster volume  remove-brick extendme serverc:/bricks/brick-c1/brick serverd:/bricks/brick-d1/brick start
-Ç¨ÒÆÊı¾İ
+è¿ç§»æ•°æ®
 
 [root@servera ~]# gluster volume  remove-brick extendme serverc:/bricks/brick-c1/brick serverd:/bricks/brick-d1/brick status
-²é¿´Ç¨ÒÆµÄ×´Ì¬
+æŸ¥çœ‹è¿ç§»çš„çŠ¶æ€
 
 [root@servera ~]# gluster volume  remove-brick extendme serverc:/bricks/brick-c1/brick serverd:/bricks/brick-d1/brick commit
-Ìá½»É¾³ı
+æäº¤åˆ é™¤
 
 
-¿ÉÒÔ¶à²Ù×÷Ò»¸öÀ©Èİ¸´ÖÆµÄÊµÑé£º
-ÔÚserverc²Ù×÷£º
+å¯ä»¥å¤šæ“ä½œä¸€ä¸ªæ‰©å®¹å¤åˆ¶çš„å®éªŒï¼š
+åœ¨servercæ“ä½œï¼š
 # rm -rf /bricks/brick-c1/brick
 # mkdir /bricks/brick-c1/brick
-ÔÚserverd²Ù×÷£º
+åœ¨serverdæ“ä½œï¼š
 # rm -rf /bricks/brick-d1/brick
 # mkdir /bricks/brick-d1/brick
-ÔÚservera²Ù×÷£º
+åœ¨serveraæ“ä½œï¼š
 # gluster volume  add-brick extendme replica 4 \
 serverc:/bricks/brick-c1/brick \
 serverd:/bricks/brick-d1/brick
