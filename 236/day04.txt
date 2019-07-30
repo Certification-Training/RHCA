@@ -137,11 +137,104 @@ allowd_hosts=127.0.0.1,manager.lab.example.com
 
 
 
+++++++++++++++++++++++++++++++++++++++++
+加密的流程：
+  对称加密:AES,DES     加密:123,解密:123
+  非对称加密:RSA,DSA   加密:123,解密:y5a
+
+		CA(认证中心)请求公钥（签名)证书
+
+
+  servera-------------serverb[淘宝]私钥-证书
+  证书			[123]	
+		 
+
+glusterFS支持I/O加密和Mnagement加密
+I/O客户端连接服务器数据加密
+Mnagement集群主机之间数据加密
+所有主机都需要以下这几个文件:
+/etc/ssl/glusterfs.pem  (证书)
+每台主机一个，不共享
+/etc/ssl/glusterfs.key  (私钥)
+每台主机一个，不共享
+/etc/ssl/glusterfs.ca   (ca)
+统一一个CA中心
+touch /var/lib/glusterd/secure-access
+
+方法有两种:
+经过CA的证书与私钥
+有一个正规的ca文件
+
+自签名的证书
+有一个ca文件，把所有的证书数据合并为一个文件
+
+在workstation执行脚本:
+#lab io-encryption setup
+脚本自动使用servera和serverb创建了一个prod-vol卷
+
+在servera确认
+[root@servera ~]# gluster volume info prod-vol
+
+停止卷
+[root@servera ~]# gluster volume  stop prod-vol
+
+密钥相关文件都在
+ftp://workstation.lab.example.com/pub/
+
+在servera操作：
+下载证书
+[root@servera ~]# curl ftp://workstation.lab.example.com/pub/servera.pem -o /etc/ssl/glusterfs.pem
+下载私钥
+[root@servera ~]# curl ftp://workstation.lab.example.com/pub/servera.key -o /etc/ssl/glusterfs.key
+下载ca文件
+[root@servera ~]# curl ftp://workstation.lab.example.com/pub/glusterfs.ca -o /etc/ssl/glusterfs.ca
+
+在serverb操作：
+下载证书
+[root@servera ~]# curl ftp://workstation.lab.example.com/pub/serverb.pem -o /etc/ssl/glusterfs.pem
+下载私钥
+[root@servera ~]# curl ftp://workstation.lab.example.com/pub/serverb.key -o /etc/ssl/glusterfs.key
+下载ca文件
+[root@servera ~]# curl ftp://workstation.lab.example.com/pub/glusterfs.ca -o /etc/ssl/glusterfs.ca
+
+
+在servera或serverb
+设置允许哪些主机使用ssl方式访问服务
+[root@serverb ~]# gluster volume set prod-vol auth.ssl-allow 'servera.lab.example.com,serverb.lab.example.com,workstation.lab.example.com'
+
+启用加密:
+[root@serverb ~]# gluster volume set  prod-vol server.ssl on
+[root@serverb ~]# gluster volume set  prod-vol client.ssl on
+
+workstation操作:
+[root@workstation ~]# mkdir -p /var/lib/glusterd
+[root@workstation ~]# touch /var/lib/glusterd/secure-access
+
+
+servera和serverb都需要操作:
+#systemctl stop glusterd
+#pkill glusterfs
+#touch /var/lib/glusterd/secure-access
+#systemctl start glusterd.service
+
+在servera或者serverb都可以:
+#gluster volume start prod-vol
+
+
+客户端访问:workstation操作:
+[root@workstation ~]# yum -y install glusterfs-fuse
+
+[root@workstation ~]# mount -t glusterfs servera:/prod-vol /mnt/
 
 
 
 
 
+
+
+
+
+	
 
 
 

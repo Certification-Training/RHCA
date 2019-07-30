@@ -1,0 +1,711 @@
+环境说明
+    workstation
+        准备CA密钥
+            lab io-encryption setup
+    foundation
+        从workstation上取得CA密钥
+            mkdir /content/ca
+            scp root@workstation:/var/ftp/pub/* /content/ca
+            测试
+                wget -O /tmp/glusterfs.key http://classroom.example.com/content/ca/servera.key
+        #以上步骤只需要做一次，不需要重复
+
+        重置所有测试机
+            rht-vmctl status all
+            rht-vmctl fullreset workstation
+            rht-vmctl fullreset servera
+            rht-vmctl fullreset serverb
+            rht-vmctl fullreset serverc
+            rht-vmctl fullreset serverd
+            rht-vmctl fullreset servere
+            rht-vmctl fullreset manager
+        ssh所有测试机
+            ssh root@workstation
+            ssh root@servera
+            ssh root@serverb
+            ssh root@serverc
+            ssh root@serverd
+            ssh root@servere
+            ssh root@manager
+
+    对应关系
+        node1-5 ->  servera,serverb,serverc,serverd,servere
+        client  ->  workstation
+        manager ->  monitor
+
+考前注意事项
+    关闭防火墙
+        firewall-cmd --set-default-zone=trusted
+    关闭SElinux
+        getenforce
+        setenforce 0
+        vim /etc/sysconfig/selinux
+            SELINUX=disabled
+    查看vg_bricks是否存在
+        vgdisplay
+        pvdisplay
+        fdisk -l
+
+错误处理
+    启动失败
+        rm -rf /etc/ssl/glusterfs.key
+        rm -rf /etc/ssl/glusterfs.pem
+        rm -rf /etc/ssl/glusterfs.ca
+        rm -rf /var/lib/glusterd/secure-access
+        systemctl restart glusterd
+    建错卷
+        gluster volume stop volumeName
+        gluster volume delete volumeName
+        重建卷，加force参数
+            gluster volume create datavol \
+                servera:/bricks/data/datavol_n1 \
+                serverb:/bricks/data/datavol_n2 \
+                force
+
+
+1、Configure a Red Hat Storage cluster
+    Configure a Red Hat Storage trusted storage pool that contains the following nodes:
+        node1
+        node2
+        node3
+        node4
+    This trusted storage pool should use management encryption. You can find CA signed certificates
+    for each one of your nodes at:
+        http://host.domain1.rhce.cc/certs/
+    The CA certificate is available at:
+        http://host.domain1.rhce.cc/domain1.crt
+
+    下载证书，每个节点都操作，第1题共4个节点
+        servera:
+            systemctl stop glusterd
+            systemctl enable glusterd
+            wget -O /etc/ssl/glusterfs.key http://classroom.example.com/content/ca/servera.key
+            wget -O /etc/ssl/glusterfs.pem http://classroom.example.com/content/ca/servera.pem
+            wget -O /etc/ssl/glusterfs.ca http://classroom.example.com/content/ca/glusterfs.ca
+            touch /var/lib/glusterd/secure-access
+            systemctl restart glusterd
+
+        serverb:
+            systemctl stop glusterd
+            systemctl enable glusterd
+            wget -O /etc/ssl/glusterfs.key http://classroom.example.com/content/ca/serverb.key
+            wget -O /etc/ssl/glusterfs.pem http://classroom.example.com/content/ca/serverb.pem
+            wget -O /etc/ssl/glusterfs.ca http://classroom.example.com/content/ca/glusterfs.ca
+            touch /var/lib/glusterd/secure-access
+            systemctl restart glusterd
+
+        serverc:
+            systemctl stop glusterd
+            systemctl enable glusterd
+            wget -O /etc/ssl/glusterfs.key http://classroom.example.com/content/ca/serverc.key
+            wget -O /etc/ssl/glusterfs.pem http://classroom.example.com/content/ca/serverc.pem
+            wget -O /etc/ssl/glusterfs.ca http://classroom.example.com/content/ca/glusterfs.ca
+            touch /var/lib/glusterd/secure-access
+            systemctl restart glusterd
+
+        serverd:
+            systemctl stop glusterd
+            systemctl enable glusterd
+            wget -O /etc/ssl/glusterfs.key http://classroom.example.com/content/ca/serverd.key
+            wget -O /etc/ssl/glusterfs.pem http://classroom.example.com/content/ca/serverd.pem
+            wget -O /etc/ssl/glusterfs.ca http://classroom.example.com/content/ca/glusterfs.ca
+            touch /var/lib/glusterd/secure-access
+            systemctl restart glusterd
+
+    设置信任关系
+        servera:
+            gluster peer probe serverb
+            gluster peer probe serverc
+            gluster peer probe serverd
+
+            gluster peer status
+    注意事项
+        不要跟node5创建信任关系
+
+2、Configure storage bricks for node1
+    Configure node1 to provide the following storage bricks:
+        /bricks/data/datatvol_n1
+        /bricks/prod/prodvol_n1
+    These bricks should be created on a primary disk (/dev/sda). Additionally, each brick should conform to the following requirements:
+        Each brick should be 2 GiB in size
+        Each brick should utilize an appropriately sized logical volume Each brick should be formatted as xfs with 512 b sized inodes.
+
+    servera:
+        mkdir -p /bricks/data
+        mkdir -p /bricks/prod
+
+        vgdisplay
+        lvcreate -L 10G -T vg_bricks/pool1
+
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv1
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv2
+        mkfs.xfs -i size=512 /dev/vg_bricks/lv1
+        mkfs.xfs -i size=512 /dev/vg_bricks/lv2
+        lvdisplay
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv1      /bricks/data/   xfs     defaults        0 0
+/dev/vg_bricks/lv2      /bricks/prod/   xfs     defaults        0 0
+EOF
+
+        cat /etc/fstab
+        mount -a
+        df -h
+
+        mkdir /bricks/data/datatvol_n1
+        mkdir /bricks/prod/prodvol_n1
+
+3、Configure storage bricks for node2
+    Configure node2 to provide the following storage bricks:
+        /bricks/data/datavol_n2
+        /bricks/prod/prodvol_n2
+    These bricks should be created on a primary disk (/dev/sda). Additionally, each brick should conform to the following requirements:
+        Each brick should be 2 GiB in size
+        Each brick should utilize an appropriately sized logical volume
+        Each brick should be formatted as xfs with 512 b sized inodes.
+
+    serverb:
+        mkdir -p /bricks/data
+        mkdir -p /bricks/prod
+
+        vgdisplay
+        lvcreate -L 10G -T vg_bricks/pool1
+
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv1
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv2
+        mkfs.xfs -i size=512  /dev/vg_bricks/lv1
+        mkfs.xfs -i size=512 /dev/vg_bricks/lv2
+        lvdisplay
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv1      /bricks/data/   xfs     defaults        0 0
+/dev/vg_bricks/lv2      /bricks/prod/   xfs     defaults        0 0
+EOF
+        cat /etc/fstab
+        mount -a
+        df -h
+
+        mkdir /bricks/data/datatvol_n2
+        mkdir /bricks/prod/prodvol_n2
+
+
+4、Configure storage bricks for node3
+    Configure node3 to provide the following storage bricks:
+        /bricks/shadow/shadowvol_n3
+        /bricks/prod/prodvol_n3
+    These bricks should be created on a primary disk (/dev/sda). Additionally,each brick should conform to the following requirements:
+        Each brick should be 2GiB in size
+        Each brick should utilize an appropriately sized logical volume Each brick should be formatted as xfs with 512 b sized inodes.
+        The volume that uses this brick will need to support Red Hat Storage snapshots
+
+    serverc:
+        mkdir -p /bricks/shadow
+        mkdir -p /bricks/prod
+
+        vgdisplay
+        lvcreate -L 10G -T vg_bricks/pool1
+
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv1
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv2
+        mkfs.xfs  -i size=512 /dev/vg_bricks/lv1
+        mkfs.xfs -i size=512 /dev/vg_bricks/lv2
+        lvdisplay
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv1      /bricks/shadow/   xfs     defaults        0 0
+/dev/vg_bricks/lv2      /bricks/prod/   xfs     defaults        0 0
+EOF
+        cat /etc/fstab
+        mount -a
+        df -h
+
+        mkdir /bricks/shadow/shadowvol_n3
+        mkdir /bricks/prod/prodvol_n3
+
+5、Configure storage bricks for node4
+    Configure node4 to provide the following storage bricks:
+        /bricks/shadow/shadowvol_n4
+        /bricks/prod/prodvol_n4
+    These bricks should be created on a primary disk (/dev/sda).
+    Additionally,each brick should conform to the following requirements:
+        Each brick should be 2GiB in size
+        Each brick should utilize an appropriately sized logical volume
+        Each brick should be formatted as xfs with 512 b sized inodes.
+        The volume that uses this brick will need to support Red Hat Storage snapshots
+
+    serverd:
+        mkdir -p /bricks/shadow
+        mkdir -p /bricks/prod
+
+        vgdisplay
+        lvcreate -L 10G -T vg_bricks/pool1
+
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv1
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv2
+        mkfs.xfs  -i size=512 /dev/vg_bricks/lv1
+        mkfs.xfs -i size=512 /dev/vg_bricks/lv2
+        lvdisplay
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv1      /bricks/shadow/   xfs     defaults        0 0
+/dev/vg_bricks/lv2      /bricks/prod/   xfs     defaults        0 0
+EOF
+        cat /etc/fstab
+        mount -a
+        df -h
+
+        mkdir /bricks/shadow/shadowvol_n4
+        mkdir /bricks/prod/prodvol_n4
+
+6、Create a distributed volume
+    Create a distributed volume on your Red Hat Storage cluster according to the following requirements:
+        The volume uses the bricks node1:/bricks/data/datavol_n1 and node2:/bricks/data/datavol_n2
+        The volume is named datavol
+        The volume should allow read/write access to all systems in the 192.168.26.0/255.255.255.0
+        I/O encryption should be enabled for the volume for all systems in the 192.168.26.0/255.255.255.0 network
+
+    servera:
+        gluster volume create datavol \
+            servera:/bricks/data/datavol_n1 \
+            serverb:/bricks/data/datavol_n2
+        gluster volume set datavol auth.ssl-allow "*"
+        gluster volume set datavol server.ssl on
+        gluster volume set datavol client.ssl on
+        gluster volume set datavol auth.allow "*"
+        gluster volume set datavol auth.allow "192.168.26.*"
+        gluster volume start datavol
+
+        gluster volume status datavol
+        gluster volume info datavol
+
+7、Create a replicated volume
+    Create a replicated volume on your Red Hat Storage cluster according to the following requirements:
+        The volume uses the bricks node3:/bricks/shadow/shadowvol_n3 and node4:/bricks/shadow/shadowvol_n4
+        The volume is named shadowvol
+        The volume should allow read/write access to all systems in the 192.168.26.0/255.255.255.0 network
+        I/O encryption should be enabled for the volume for all systems in the 192.168.26.0/255.255.255.0 network
+
+    servera:
+        gluster volume create shadowvol replica 2 \
+            serverc:/bricks/shadow/shadowvol_n3 \
+            serverd:/bricks/shadow/shadowvol_n4
+        gluster volume set shadowvol auth.ssl-allow "*"
+        gluster volume set shadowvol server.ssl on
+        gluster volume set shadowvol client.ssl on
+        gluster volume set shadowvol auth.allow "*"
+        gluster volume set shadowvol auth.allow "192.168.26.*"
+        gluster volume start shadowvol
+
+        gluster volume info shadowvol
+        gluster volume status shadowvol
+
+8、Create a distributed replicated volume
+    Create a distributed replicated volume on your Red Hat Storage cluster according to the following requirements:
+        The volume uses the bricks:
+            node1:/bricks/prod/prod_vol_n1
+            node2:/bricks/prod/prod_vol_n2
+            node3:/bricks/prod/prod_vol_n3
+            node4:/bricks/prod/prod_vol_n4
+        The volume is named prodvol
+        The volume should allow read/write access to all systems in the 192.168.26.0/255.255.255.0 network
+        I/O encryption should be enabled for the volume for all systems in the 192.168.26.0/255.255.255.0 network
+
+    servera:
+        gluster volume create prodvol replica 2 \
+            servera:/bricks/prod/prod_vol_n1 \
+            serverb:/bricks/prod/prod_vol_n2 \
+            serverc:/bricks/prod/prod_vol_n3 \
+            serverd:/bricks/prod/prod_vol_n4
+        gluster volume set prodvol auth.ssl-allow "*"
+        gluster volume set prodvol server.ssl on
+        gluster volume set prodvol client.ssl on
+        gluster volume set prodvol auth.allow "*"
+        gluster volume set prodvol auth.allow "192.168.26.*"
+        gluster volume start prodvol
+
+        gluster volume info prodvol
+        gluster volume status prodvol
+
+    #此处做一个快照
+
+9、Mount storage volumes on a client system.
+    Configure the system client.domain1.rhce.cc to mount your cluster volumes according to these requirements:
+    datavol should be mounted as a gluster native filesystem under /data
+    shadowvol should be mounted as an NFS filesystem under /shadow
+    prodvol should be mounted as a gluster native filesystem under /prod
+    All mounts should persist across system reboots
+
+    workstation:
+        yum list gluster*
+        yum install glusterfs-fuse.* -y
+
+        wget -O /etc/ssl/glusterfs.key http://classroom.example.com/content/ca/wk.key
+        wget -O /etc/ssl/glusterfs.pem http://classroom.example.com/content/ca/wk.pem
+        wget -O /etc/ssl/glusterfs.ca http://classroom.example.com/content/ca/glusterfs.ca
+        mkdir /var/lib/glusterd
+        touch /var/lib/glusterd/secure-access
+
+        mkdir /data
+        mkdir /shadow
+        mkdir /prod
+
+        showmount -e servera
+        cat >> /etc/fstab << EOF
+servera:/datavol	/data	glusterfs	defaults,acl	0 0
+servera:/shadowvol	/shadow nfs         defaults,_netdev	0 0
+servera:/prodvol	/prod	glusterfs	defaults	0 0
+EOF
+        cat /etc/fstab
+        mount -a
+        df -h
+
+    测试
+        datavol     ->  distributed volume ，   只要servera/serverb任一目录有就行
+                servera:/bricks/data/datavol_n1
+                serverb:/bricks/data/datavol_n2
+        shadowvol   ->  replicated volume   ，  serverc/serverd两个目录内容要相同
+                serverc:/bricks/shadow/shadowvol_n3
+                serverd:/bricks/shadow/shadowvol_n4
+        prodvol     ->  distributed replicated volume   ， a/b/c/d必须存在2份文件
+                servera:/bricks/prod/prod_vol_n1
+                serverb:/bricks/prod/prod_vol_n2
+                serverc:/bricks/prod/prod_vol_n3
+                serverd:/bricks/prod/prod_vol_n4
+        workstation:
+            \cp /etc/hosts /data/file0901
+            \cp /etc/hosts /data/file0902
+            \cp /etc/hosts /data/file0903
+            \cp /etc/hosts /data/file0904
+            \cp /etc/hosts /shadow/file0901
+            \cp /etc/hosts /shadow/file0902
+            \cp /etc/hosts /shadow/file0903
+            \cp /etc/hosts /shadow/file0904
+            \cp /etc/hosts /prod/file0901
+            \cp /etc/hosts /prod/file0902
+            \cp /etc/hosts /prod/file0903
+            \cp /etc/hosts /prod/file0904
+        servera:
+            clear
+            cd /bricks/data/datavol_n1
+            ls
+            cd /bricks/prod/prod_vol_n1
+            ls
+        serverb:
+            clear
+            cd /bricks/data/datavol_n2
+            ls
+            cd /bricks/prod/prod_vol_n2
+            ls
+        serverc:
+            clear
+            cd /bricks/prod/prod_vol_n3
+            ls
+            cd /bricks/shadow/shadowvol_n3
+            ls
+        serverd:
+            clear
+            cd /bricks/prod/prod_vol_n4
+            ls
+            cd /bricks/shadow/shadowvol_n4
+            ls
+
+10、Configure storage limits
+    Configure storage limits on client.domain1.rhce.cc according to the following requirements:
+        Create the directory /prod/mp4
+        Users on client.domain1.rhce.cc should have read/write permissons on /prod/mp4
+        Users should not be able to use more than 128MiB of space under /prod/mp4
+
+    workstation:
+        mkdir /prod/mp4
+        chmod o+w /prod/mp4
+
+    servera:
+        gluster volume quota prodvol enable
+        gluster volume quota prodvol limit-usage /mp4 128MB
+        gluster volume quota prodvol list
+
+11、Configure a directory with access controls
+    On the system client create a directory and secure it a according to the following requirements:
+        Create the directory /data/private_data
+        /data/private_data should be owned by the user root and the group hr
+        The user natasha should have read and write access to /data/private_data and any other future directories or files created under this directory however this user should not be able to access any other directories or files which belong to the group hr
+        The user harry should have read access to /data/private_data and any other future directories or files created under this directory however this user should not be able to access any other directories or files which belong to the group hi
+        All other users (current to future)should not be able to access /data/private_data
+
+    workstation:
+        mkdir /data/private_data
+
+        more /etc/group|grep hr
+        #如果不存在，则创建HR组
+            groupadd hr
+        chgrp hr /data/private_data
+        ls -l /data
+
+        more /etc/passwd|grep natasha
+        #如果不存在natasha用户，则创建
+            useradd natasha
+        setfacl -m u:natasha:rwx /data/private_data/
+        setfacl -m d:u:natasha:rwx /data/private_data/
+
+        more /etc/passwd|grep harry
+        #如果不存在 harry 用户，则创建
+            useradd harry
+        setfacl -m u:harry:rwx /data/private_data/
+        setfacl -m d:u:harry:rwx /data/private_data/
+
+        chmod o-rx /data/private_data/
+        ls -l /data
+
+12、Configure asynchronous replication
+    The volume datavol should be configured for asynchronous replication according to the following requirements:
+        Content on datavol should be backed up to the volume datarep on node5 The master node should be node1
+        datarep should be large enough to contain the entire contents of datavol
+        The replication must use a non-privileged account.The account must be named syncuser and must belong to the group syncgroup
+        The master node should be limited to only being able to run the command necessary to perform replication
+        node5 should also use management encryption. You can find CA signed certificates for each one of your nodes at:
+            http://host.domain1.rhce.cc/certs/
+        The CA certificate is available at:
+            http://host.domain1.rhce.cc/domain1.crt
+
+    servere:
+        systemctl stop glusterd
+        systemctl enable glusterd
+        wget -O /etc/ssl/glusterfs.key http://classroom.example.com/content/ca/servere.key
+        wget -O /etc/ssl/glusterfs.pem http://classroom.example.com/content/ca/servere.pem
+        wget -O /etc/ssl/glusterfs.ca http://classroom.example.com/content/ca/glusterfs.ca
+        touch /var/lib/glusterd/secure-access
+        systemctl restart glusterd
+
+        mkdir -p /bricks/data/
+        vgdisplay
+        lvcreate -L 10G -T vg_bricks/pool1
+        lvcreate -V 7G -T vg_bricks/pool1 -n lv1
+        mkfs.xfs  -i size=512 /dev/vg_bricks/lv1
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv1      /bricks/data/   xfs     defaults        0 0
+EOF
+
+        cat /etc/fstab
+        mount -a
+        df -h
+        mkdir /bricks/data/datarep
+
+        gluster volume create datarep servere:/bricks/data/datarep
+        gluster volume set datarep auth.ssl-allow "*"
+        gluster volume set datarep server.ssl on
+        gluster volume set datarep client.ssl on
+        gluster volume set datarep auth.allow "*"
+        gluster volume start datarep
+
+        groupadd syncgroup
+        useradd -g syncgroup syncuser
+        echo redhat | passwd --stdin syncuser
+
+        mkdir /var/root
+        chmod 711 /var/root
+
+        vim /etc/glusterfs/glusterd.vol
+            option mountbroker-root /var/root
+            option mountbroker-geo-replication.syncuser datarep
+            option geo-replication-log-group syncgroup
+            option rpc-auth-allow-insecure on
+        #以上内容参考3.1管理员手册 226 页
+
+        systemctl restart glusterd
+
+    servera:
+        #设置用syncuser无密码登录 servere
+            ssh-keygen -N ""
+            ssh-copy-id syncuser@servere
+            ssh syncuser@servere
+
+        gluster system:: execute gsec_create
+        gluster volume geo-replication datavol syncuser@servere::datarep  create push-pem
+
+    servere:
+        #设置主辅关系
+            /usr/libexec/glusterfs/set_geo_rep_pem_keys.sh syncuser datavol datarep
+
+    servera:
+        gluster volume geo-replication datavol syncuser@servere::datarep start
+
+        gluster volume info datavol
+        gluster volume info datarep
+        gluster volume geo-replication status
+        gluster volume geo-replication datavol syncuser@servere::datarep status
+
+    测试
+        client:
+            \cp /etc/hosts /data/file1201
+            \cp /etc/hosts /data/file1202
+        servera:
+            cd /bricks/data/datavol_n1
+            ls
+        serverb:
+            cd /bricks/data/datavol_n2
+            ls
+        servere:
+            cd /bricks/data/datarep
+            ls
+
+13、Create a snapshot
+    Create a snapshot for shadowvol on your Red Hat Storage cluster according to the following requirements:
+        The snapshot is named shadow-snap,The name should not include a timestamp
+
+    servera:
+        gluster snapshot create shadow-snap shadowvol no-timestamp
+
+14、Create a tiered volume
+    node1 and node2 both have an iSCSI disk (/dev/sdb 考试环境使用sda) that is presumed to be faster than other disks on those systems. Use this device to create a tiered volume as follows:
+        The volume is named tiervol
+        The volume uses the following bricks (which you will need to create)
+            node1:/bricks/tier/tiervol_n1 - this brick should reside on the iSCSI disk (/dev/sdb)
+            node2:/bricks/tier/tiervol_n2 - this brick should reside on the iSCSI disk (/dev/sdb)
+            node3:/bricks/tier/tiervol_n3 - this brick should reside on the primary disk (/dev/sda)
+            node4:/bricks/tier/tiervol_n4 - this brick should reside on the primary disk (/dev/sda)
+    Additionally, each brick should conform to the following requirements:
+        Each brick should be 2 GiB in size
+    #内容参考3.1管理员手册 203 页
+
+    servera:
+        lsblk
+        mkdir /bricks/tier
+
+        lvcreate -L 6G -T vg_bricks/pool2
+        lvcreate -V 2G -T vg_bricks/pool2 -n lv11
+        mkfs.xfs -i size=512  /dev/vg_bricks/lv11
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv11      /bricks/tier/   xfs     defaults,_netdev        0 0
+EOF
+        cat /etc/fstab
+        mount -a
+        df -h
+        mkdir /bricks/tier/tiervol_n1
+
+    serverb:
+        lsblk
+        mkdir /bricks/tier
+
+        lvcreate -L 6G -T vg_bricks/pool2
+        lvcreate -V 2G -T vg_bricks/pool2 -n lv11
+        mkfs.xfs -i size=512  /dev/vg_bricks/lv11
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv11      /bricks/tier/   xfs     defaults,_netdev        0 0
+EOF
+
+        cat /etc/fstab
+        mount -a
+        df -h
+        mkdir /bricks/tier/tiervol_n2
+
+    serverc:
+        mkdir /bricks/tier
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv13
+        mkfs.xfs  -i size=512 /dev/vg_bricks/lv13
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv13      /bricks/tier/   xfs     defaults        0 0
+EOF
+
+        cat /etc/fstab
+        mount -a
+        df -h
+        mkdir /bricks/tier/tiervol_n3
+
+    serverd:
+        mkdir /bricks/tier
+        lvcreate -V 2G -T vg_bricks/pool1 -n lv13
+        mkfs.xfs  -i size=512 /dev/vg_bricks/lv13
+
+        cat >> /etc/fstab << EOF
+/dev/vg_bricks/lv13      /bricks/tier/   xfs     defaults        0 0
+EOF
+
+        cat /etc/fstab
+        mount -a
+        df -h
+        mkdir /bricks/tier/tiervol_n4
+
+    servera:
+        gluster volume create tiervol replica 2 \
+            serverc:/bricks/tier/tiervol_n3 \
+            serverd:/bricks/tier/tiervol_n4
+        gluster volume tier tiervol attach replica 2 \
+            servera:/bricks/tier/tiervol_n1 \
+            serverb:/bricks/tier/tiervol_n2
+
+            #此处会有 volume attach-tier: success
+            #后面的提示可以忽略
+
+        gluster volume set tiervol auth.ssl-allow "*"
+        gluster volume set tiervol server.ssl on
+        gluster volume set tiervol client.ssl on
+        gluster volume set tiervol auth.allow "*"
+        gluster volume set tiervol auth.allow "192.168.26.*"
+        gluster volume start tiervol
+
+        gluster volume tier tiervol status
+        gluster volume info tiervol
+
+    测试
+        workstation:
+            mkdir /tier
+            mount -t nfs servera:/tiervol /tier
+            \cp /etc/hosts /tier/file1401
+            \cp /etc/hosts /tier/file1402
+            \cp /etc/hosts /tier/file1403
+            \cp /etc/hosts /tier/file1404
+        servera:
+            cd /bricks/tier/tiervol_n1
+            ls
+        serverb:
+            cd /bricks/tier/tiervol_n2
+            ls
+        serverc:
+            cd /bricks/tier/tiervol_n3
+            ls
+        serverd:
+            cd /bricks/tier/tiervol_n4
+            ls
+
+15、Configure monitoring
+    Nagios has been pre-installed on monitor. Configure monitoring on this system as follows:
+        monitor is able to monitor node1, node2, node3, node4 and the trusted storage pool The monitoring cluster name should be ex236-gluster
+        Nagios sends email notifications for glusterd to the monitor user on monitor. Note that this user has already been created for you on monitor, and the mail service has already been configured to listen for remote connections.
+
+    准备工作：
+        manager:
+            rhsc-setup
+                curl http://materials.example.com/rhgs-rhel6.repo -o /etc/yum.repos.d/rhgs-rhel6.repo
+                yum -y install rhsc
+                rhsc-setup
+                iptables -F
+                service iptables save
+                which configure-gluster-nagios
+                /usr/lib64/nagios/plugins/check_nrpe -H 127.0.0.1
+    servera:
+        vim /etc/nagios/nrpe.cfg
+            allowed_hosts = 127.0.0.1,manager
+        systemctl restart nrpe
+
+    serverb:
+        vim /etc/nagios/nrpe.cfg
+            allowed_hosts = 127.0.0.1,manager
+        systemctl restart nrpe
+
+    serverc:
+        vim /etc/nagios/nrpe.cfg
+            allowed_hosts = 127.0.0.1,manager
+        systemctl restart nrpe
+
+    serverd:
+        vim /etc/nagios/nrpe.cfg
+            allowed_hosts = 127.0.0.1,manager
+        systemctl restart nrpe
+
+    manager:
+        configure-gluster-nagios -c ex236-gluster -H servera
+

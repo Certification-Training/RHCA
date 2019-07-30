@@ -1,0 +1,167 @@
+﻿https://access.redhat.com/documentation/en-US/Red_Hat_Storage/3.1/html/Administration_Guide/index.html
+官方管理员手册文档(考试时会提供该文件,部分步骤可以参考)
+
+补充：
+1.Manager Tier
+
+考试环境:
+	a)使用node1和node2做复制卷(使用vda剩余空间创建lv)
+	b)附加node3和node4的/dev/sda(sda为iscsi)做作为hot tier(使用sda创建lv)
+
+	
+模拟环境:	可以使用servera和serverb做复制卷，名称为tiervol(任意名称)
+			添加servera和serverb的另外两个lv，作为hot tier
+环境准备:	登陆workstation主机执行lab tiering setup
+servera操作:
+#gluster volume info prod-vol	//查看卷信息,确认卷为started状态
+
+servera和serverb操作(查看是否有足够的lv作为hot tier)
+#mount |grep brick
+//servera主机上有brick-a1、brick-a2
+//serverb主机上有brick-b1、brick-b2
+//环境已经使用a1和b1做了一个prod-vol卷，下面为该卷添加hot tier
+
+servera操作(添加hot tier):
+#gluster volume tier  prod-vol attach  replica 2 \
+>servera:/bricks/bricks-a2/brick \
+>serverb:/bricks/bricks-b2/brick
+
+//查看卷信息
+#gluster volume  info  prod-vol   //卷被分为hot和cold两个子卷
+
+
+注意事项：	考试时cold卷需要手动自己创建(pv,vg,lv,gluster卷)
+			hot子卷使用的lv也需要自己创建
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+2.使用Nagios监控Red Hat Gluster Storage
+
+使用Nagios监控时，分监控端主机和被监控端主机
+一台监控主机，可以监控很多被监控的主机(获取她们的信息CPU,内存,磁盘等信息)
+每台被监控端主机都需要安装NRPE(允许其他主机过来监控自己)
+
+红帽的监控架构需要在RHS存储节点运行NRPE进程,在红帽图形环境(RHS console)安装插件check_nrpe
+
+考试环境:	node1\node2\node3\node4为被监控端
+			另外一台独立的monitor主机为监控端
+			(软件包已经安装完成，配置文件多数已经修改完毕)
+			被监控端设置允许规则，监控端开启监控即可
+
+			
+模拟环境:
+			servera和serverb作为Red Hat Storage存储服务器节点(被监控端)
+			manager(安装Red Hat Storage Console:RHSC图形控制台)(监控端)
+准备环境:	在workstation上执行:#lab rhsc-nagios setup		
+//安装RHSC(console图形环境)需要很长时间,
+//可以在manager主机通过tailf /var/log/yum.log查看装包进度
+//如果长时间宕机在安装rhsc包时，可以结束lab,手动到manager主机把yum进程杀死
+//手动在manager主机执行yum -y install rhsc,安装完毕后回到workstation再次执行lab脚本
+//如何脚本在配置rhsc时比较慢，可以先撤销脚本，在manager主机把engine和yum相关进程杀死
+//再手动执行engine-setup --config=rhsc-install.conf即可自动完成配置
+//配置完成后，回到workstation再次执行lab rhsc-nagios setup脚本
+
+实验步骤:
+servera和eserverb操作(设置防火墙允许所有)
+#firewall-cmd --set-default-zone=trusted
+
+servera和serverb操作(设置允许manager主机监控自己)
+#cat /etc/nagios/nrpe.cfg
+... ...
+allowed_hosts=127.0.0.1,manager.lab.example.com
+//该内容默认为127,添加一个manager即可(考试时是一台monitor主机)
+
+#systemctl restart nrpe
+
+
+监控端(manager主机配置)
+我们不需要手动将现有的RHGS存储架构导入Nagios,Nagios提供了一个Python脚本。
+该脚本可以自动发现存储节点、卷、bricks等等。
+脚本名称为:configure-gluster-nagios,该脚本会自动修改监控配置文件
+#configure-gluster-nagios -c gluster-cluster -H servera.lab.example.com
+-c设定一个存储集群名称(逻辑名称)(servera和serverb做信任池即是一个存储集群)
+-H指定被监控端域名或IP地址
+//监控一台主机整个存储集群
+#nagios -v  /etc/nagios/nagios.cfg		//检查配置文件是否有错误
+提示:look ok, No serious problem表示没问题
+
+#service nagios  restart			//重启nagios服务
+
+
+
+
+配置邮件服务器接收远程发来报警邮件(在manager监控主机操作):
+#cat /etc/mail/sendmail.mc
+dnl# DAEMON_OPTIONS(`Port=smtp,Addr=127.0.0.1,Name=MTA')dnl
+#chkconfig sendmail on
+#service sendmail restart
+
+
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+3.I/O数据加密
+
+所有主机的卷都采用加密传输
+
+加密实验需要一下一个文件(文件名和路径都固定)
+/etc/ssl/glusgerfs.pem(证书)
+/etc/ssl/glusgerfs.key(私钥)
+/etc/ssl/glusgerfs.ca(CA中心的证书,所有的服务器和客户端都应该有该文件)
+但客户端的CA文件不一定与服务器相同(服务器之间必须相同,客户端之间必须相同)
+服务器的glusterfs.ca文件(包含所有服务器和客户端被CA签名的证书信息)
+客户端的glusterfs.ca文件(可以只包含所有服务器被CA签名的证书信息)
+/var/lib/glusterd/secure-access
+
+模拟环境实验:在workstation上执行lab  io-encryption setup
+脚本自动使用servera和serverb制作了一个复制卷(prod-vol)
+
+servera操作:
+#gluster volume stop  prod-vol
+#cd  /etc/ssl/
+#wget ftp://workstation.lab.exmple.com/pub/servera.pem -O gluster.pem
+#wget ftp://workstation.lab.exmple.com/pub/servera.key -O gluster.key
+#wget ftp://workstation.lab.exmple.com/pub/glusterfs.ca -O gluster.ca
+//注意:考试提供的CA证书名称扩展名为crt,需要修改扩展名为ca
+//可以使用火狐浏览器打开这个共享目录看看还有没有其他共享文件
+
+serverb操作:
+#cd  /etc/ssl/
+#wget ftp://workstation.lab.exmple.com/pub/serverb.pem -O gluster.pem
+#wget ftp://workstation.lab.exmple.com/pub/serverb.key -O gluster.key
+#wget ftp://workstation.lab.exmple.com/pub/glusterfs.ca -O gluster.ca
+
+#gluster  volume  set   prod-vol  auth.ssl-allow 'servera,serverb,workstation'
+//设置哪些主机允许加密通信(所有客户端和服务器的主机名)
+
+#gluster  volume  set   prod-vol  server.ssl  on
+#gluster  volume  set   prod-vol  client.ssl  on
+
+
+#客户端安装glusterfs-server
+#yum -y install  glusterfs-server
+#touch  /var/lib/glusterd/secure-access
+#wget ftp://workstation.lab.exmple.com/pub/glusterfs.ca -O gluster.ca
+
+
+
+#重启glusterfs服务(servera和serverb操作:)
+#systemctl stop  glusterd
+#pkill glusterfs
+#touch  /var/lib/glusterd/secure-access
+#systemctl start  glusterd
+
+#gluster volume  info  prod-vol		//查看卷的属性信息(ssl为on)
+
+
+#客户端挂载
+#yum -y  install  glusterfs-fuse
+#mount -t  glusterfs  servera:/prod-vol  /mnt
+
+
+
+
+
